@@ -1,6 +1,6 @@
 
 
-import Vue, { createApp, defineComponent, watch } from 'vue';
+import Vue, { createApp, defineComponent, nextTick, watch } from 'vue';
 import { AxiosClient, AxiosItemResult, AxiosListResult, ItemApiState } from '../src/api-client'
 import { mapToModel } from '../src/model';
 import { ViewModelCollection } from '../src/viewmodel';
@@ -91,8 +91,8 @@ describe("ViewModel", () => {
         for (let i = 0; i < 10; i++) await vue.$nextTick();
 
         // Watcher should have been triggered for isLoading=true, then isLoading=false.
-        expect(callbackFn).toHaveBeenNthCalledWith(1, true, false);
-        expect(callbackFn).toHaveBeenNthCalledWith(2, false, true);
+        expect(callbackFn).toHaveBeenNthCalledWith(1, true, false, expect.anything());
+        expect(callbackFn).toHaveBeenNthCalledWith(2, false, true, expect.anything());
         expect(capturedName).toBe('Bob')
       })
 
@@ -112,7 +112,7 @@ describe("ViewModel", () => {
         for (let i = 0; i < 10; i++) await vue.$nextTick();
 
         // Watcher should have been triggered for isLoading=true, then isLoading=false.
-        expect(callbackFn).toHaveBeenNthCalledWith(1, true, null);
+        expect(callbackFn).toHaveBeenNthCalledWith(1, true, null, expect.anything());
         expect(capturedName).toBe('Bob')
       })
     })
@@ -867,10 +867,7 @@ describe("ViewModel", () => {
         student.$loadCleanData(factory());
         
         const vue = mountData({ student });
-        const watchCallback = vitest.fn(() => {
-          debugger;
-        });
-          debugger;
+        const watchCallback = vitest.fn();
         vue.$watch('student', watchCallback, { deep: true });
 
         student.$loadCleanData(factory());
@@ -961,13 +958,12 @@ describe("ViewModel", () => {
         var student = new StudentViewModel();
         student.courses = [];
 
-        const vue = mount(defineComponent({ data() { return { student } }})).vm;
         const watchCallback = vitest.fn();
-        vue.$watch('student.courses', watchCallback);
+        watch(student.courses, watchCallback);
 
         student.courses.push(new CourseViewModel);
 
-        await vue.$nextTick();
+        await nextTick();
 
         expect(watchCallback).toBeCalledTimes(1);
         expect(student.courses).toHaveLength(1);
@@ -1220,19 +1216,19 @@ describe("ViewModel", () => {
         studentAdvisorId: 3,
         advisor: { advisorId: 3, name: "Delphine", }
       });
-      var course = new CourseViewModel(courseModel);
+      var student = new StudentViewModel(studentModel);
 
-      courseModel.studentId = 4;
-      courseModel.student!.studentId = 4;
-      courseModel.student!.name = "Beth";
-      course.$loadCleanData(courseModel);
+      studentModel.studentAdvisorId = 4;
+      studentModel.advisor!.advisorId = 4;
+      studentModel.advisor!.name = "Beth";
+      student.$loadCleanData(studentModel);
 
       // FK on course should have been updated
       // with the PK from the student object.
 
       // There was a bug where the PK was being sourced from the wrong object.
       // This only happened in rare cases where the nav prop was iterated before the FK prop.
-      expect(course.studentId).toBe(4);
+      expect(student.studentAdvisorId).toBe(4);
     })
 
     test("updates foreign keys from navigation props' PKs when navigation prop is iterated second", () => {
@@ -1254,7 +1250,6 @@ describe("ViewModel", () => {
       courseModel.studentId = 4;
       courseModel.student!.studentId = 4;
       courseModel.student!.name = "Beth";
-      debugger;
       course.$loadCleanData(courseModel);
 
       // FK on course should have been updated
@@ -1417,6 +1412,7 @@ describe("ViewModel", () => {
       student.courses!.forEach(c => {
         expect(c).toBeInstanceOf(CourseViewModel);
         expect((c as any).$parent).toBe(student);
+        debugger;
         expect((c as any).$parentCollection).toBe(student.courses);
       })
 
@@ -1559,6 +1555,7 @@ describe("ListViewModel", () => {
       await list.$load();
 
       const vue = mount(defineComponent({
+        template: 'x',
         data() { return { list } },
         computed: {
           name() {
@@ -1641,6 +1638,7 @@ describe("ListViewModel", () => {
       // not accounting for the fact that the .push() on the VMC could change as part of the mapping.
       
       const vue = mount(defineComponent({
+        template: 'x',
         data() { return { list } },
         computed: {
           name() {

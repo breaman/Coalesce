@@ -614,14 +614,15 @@ describe("$makeCaller", () => {
       "item", 
       (c) => c.getFile(42, 'bob'),
     )
-    const wrapper = mount({ });
+    
+    const wrapper = mount({ template: 'x' });
     const vue = wrapper.vm;
 
     const beforeUnmountHooks = () => (vue.$ as any)['bum'];
 
     // Act/assert - before any invocation.
     expect(caller.getResultObjectUrl(vue)).toBeUndefined();
-    expect(beforeUnmountHooks()).toBeUndefined();
+    expect(beforeUnmountHooks()).toBeFalsy();
 
     // Act/Assert - first invocation
     await caller();

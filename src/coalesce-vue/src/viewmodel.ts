@@ -1,5 +1,21 @@
-import Vue, { createApp, onUnmounted, ComponentInternalInstance, ComponentPublicInstance, onBeforeUnmount, reactive, toRaw, ref, shallowRef, markRaw } from "vue";
+import Vue, { ComponentPublicInstance, onBeforeUnmount, reactive, toRaw, ref, markRaw, type ReactiveFlags } from "vue";
 
+/** This is the property added by `markRaw`. 
+  * We use it directly so we can declare it on the proto of ViewModel/ListViewModel
+  * rather than calling markRaw on each instance.
+  * 
+  * We make these classes nonreactive with Vue, preventing ViewModel instance from being wrapped with a Proxy.
+  * To achieve reactivity, we instead make individual members reactive with `reactive`/`ref`.
+  * 
+  * We have to do this because `reactive` doesn't play nice with prototyped objects.
+  * Any sets to a setter on the ViewModel class will trigger the reactive proxy,
+  * and since the setter is defined on the prototype and Vue checks hasOwnProperty 
+  * when determining if a field is new on an object, all setters trigger reactivity
+  * even if the value didn't change.
+  * 
+  * We can use the export of ReactiveFlags from vue because of https://github.com/vuejs/core/issues/1228
+*/
+const ReactiveFlags_SKIP = "__v_skip" as ReactiveFlags.SKIP;
 
 import {
   ModelType,
@@ -19,18 +35,12 @@ import {
   ModelApiClient,
   ListParameters,
   DataSourceParameters,
-  ParamsObject,
-  ListApiState,
-  ItemApiState,
-  ItemResultPromise,
-  ListResultPromise,
   ServiceApiClient
 } from "./api-client.js";
 import {
   Model,
   modelDisplay,
   propDisplay,
-  mapToDto,
   convertToModel,
   mapToModel
 } from "./model.js";
@@ -58,12 +68,17 @@ DESIGN NOTES
 
 
 let nextStableId = 1;
-
 export abstract class ViewModel<
   TModel extends Model<ModelType> = any,
   TApi extends ModelApiClient<TModel> = any,
   TPrimaryKey extends string | number = any
 > implements Model<TModel["$metadata"]> {
+
+  /** See comments on ReactiveFlags_SKIP for explanation. 
+   * @internal
+  */
+  private readonly [ReactiveFlags_SKIP] = true;
+
   /** Static lookup of all generated ViewModel types. */
   public static typeLookup: ViewModelTypeLookup | null = null;
 
@@ -706,13 +721,9 @@ export abstract class ViewModel<
       writable: false
     })
 
-    const thisReactive = reactive(this) as this;
-
     if (initialDirtyData) {
-      thisReactive.$loadDirtyData(initialDirtyData);
+      this.$loadDirtyData(initialDirtyData);
     }
-
-    return thisReactive;
   }
 }
 
@@ -721,6 +732,17 @@ export abstract class ListViewModel<
   TApi extends ModelApiClient<TModel> = ModelApiClient<TModel>,
   TItem extends ViewModel<TModel, TApi> = ViewModel<TModel, TApi>
 > {
+  /** Make nonreactive with Vue, preventing ViewModel instance from being wrapped with a Proxy.
+   * Instead, we make individual members reactive with `reactive`/`ref`.
+   * 
+   * We have to do this because `reactive` doesn't play nice with prototyped objects.
+   * Any sets to a setter on the ViewModel class will trigger the reactive proxy,
+   * and since the setter is defined on the prototype and Vue checks hasOwnProperty 
+   * when determining if a field is new on an object, all setters trigger reactivity
+   * even if the value didn't change.
+   */
+  private readonly [ReactiveFlags_SKIP] = true;
+
   /** Static lookup of all generated ListViewModel types. */
   public static typeLookup: ListViewModelTypeLookup | null = null;
 
@@ -888,6 +910,17 @@ export class ServiceViewModel<
   TMeta extends Service = Service,
   TApi extends ServiceApiClient<TMeta> = ServiceApiClient<TMeta>
 > {
+  /** Make nonreactive with Vue, preventing ViewModel instance from being wrapped with a Proxy.
+   * Instead, we make individual members reactive with `reactive`/`ref`.
+   * 
+   * We have to do this because `reactive` doesn't play nice with prototyped objects.
+   * Any sets to a setter on the ViewModel class will trigger the reactive proxy,
+   * and since the setter is defined on the prototype and Vue checks hasOwnProperty 
+   * when determining if a field is new on an object, all setters trigger reactivity
+   * even if the value didn't change.
+   */
+  private readonly [ReactiveFlags_SKIP] = true;
+
   /** Static lookup of all generated ServiceViewModel types. */
   public static typeLookup: ServiceViewModelTypeLookup | null = null;
 
@@ -898,7 +931,7 @@ export class ServiceViewModel<
     /** Instance of an API client for the model through which direct, stateless API requests may be made. */
     public readonly $apiClient: TApi
   ) {
-    return reactive(this) as this;
+    markRaw(this);
   }
 }
 
@@ -1030,35 +1063,16 @@ function viewModelCollectionMapItems<T extends ViewModel>(
   });
 }
 
-function resolveProto(obj: ViewModelCollection<any>): Array<any> {
-  // Babel does some stupid nonsense where it will wrap our proto
-  // in another proto. This breaks things if coalesce-vue is imported from source,
-  // or if we were to at some point in the future emit a esnext version of coalesce-vue.
-  const proto = Object.getPrototypeOf(obj);
-  if (obj.push == proto.push) {
-    // `proto` is the wrapper because it contains our own `push` (and other methods).
-    // Go up one more level.
-    return Object.getPrototypeOf(proto);
-  }
-  return proto;
-}
-
 export class ViewModelCollection<T extends ViewModel> extends Array<T> {
   readonly $metadata!: ModelCollectionValue | ModelType;
   readonly $parent!: any;
   $hasLoaded!: boolean;
 
   override push(...items: T[]): number {
-    // MUST evaluate the .map() before grabbing the .push()
-    // method from the proto. See test "newly loaded additional items are reactive".
-    const viewModelItems = viewModelCollectionMapItems(items, this, true);
-
-    return super.push(...viewModelItems);
+    return super.push(...viewModelCollectionMapItems(items, this, true));
   }
 
   override splice(start: number, deleteCount?: number, ...items: T[]): T[] {
-    // MUST evaluate the .map() before grabbing the .push()
-    // method from the proto. See test "newly loaded additional items are reactive".
     const viewModelItems: any[] = items
       ? viewModelCollectionMapItems(items, this, true)
       : items;
@@ -1092,19 +1106,9 @@ export class ViewModelCollection<T extends ViewModel> extends Array<T> {
         writable: true,
         configurable: false
       },
-      // push: {
-      //   value: ViewModelCollection.prototype.push,
-      //   enumerable: false,
-      //   writable: false,
-      //   configurable: false
-      // },
-      // splice: {
-      //   value: ViewModelCollection.prototype.splice,
-      //   enumerable: false,
-      //   writable: false,
-      //   configurable: false
-      // }
     });
+
+    return reactive(this) as this;
   }
 }
 
@@ -1234,7 +1238,7 @@ export function defineProps<T extends new () => ViewModel<any, any>>(
               const $data = (this as any).$data;
               const old = $data[propName];
 
-              if (old === incomingValue || toRaw(old) === incomingValue) {
+              if (old === incomingValue) {
                 // Setting same value. Do nothing.
                 return;
               }

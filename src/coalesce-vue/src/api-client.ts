@@ -1,4 +1,4 @@
-import Vue, { ComponentPublicInstance, onBeforeUnmount } from "vue";
+import Vue, { ComponentPublicInstance, onBeforeUnmount, Ref, ref } from "vue";
 
 
 import {
@@ -1016,20 +1016,28 @@ export abstract class ApiState<
   /** The metadata of the method being called, if it was provided. */
   abstract $metadata?: Method;
 
+  private readonly __isLoading = ref(false);
   /** True if a request is currently pending. */
-  isLoading: boolean = false;
+  get isLoading() { return this.__isLoading.value }
+  set isLoading(v) { this.__isLoading.value = v }
 
+  private readonly __wasSuccessful = ref<boolean | null>(null);
   /** True if the previous request was successful. */
-  wasSuccessful: boolean | null = null;
+  get wasSuccessful() { return this.__wasSuccessful.value }
+  set wasSuccessful(v) { this.__wasSuccessful.value = v }
 
+  private readonly __message = ref<string | null>(null);
   /** Error message returned by the previous request. */
-  message: string | null = null;
+  get message() { return this.__message.value }
+  set message(v) { this.__message.value = v }
 
+  private readonly __hasResult = ref<boolean>(false);
   /** Whether `.result` is null or not.
    * Using this prop to check for a result avoids a subscription 
    * against the whole result object, which will change each time the method is called.
    */
-  hasResult: boolean = false;
+  get hasResult() { return this.__hasResult.value }
+  set hasResult(v) { this.__hasResult.value = v }
 
   private _concurrencyMode: ApiCallerConcurrency = "disallow";
 
@@ -1084,14 +1092,12 @@ export abstract class ApiState<
     this.setConcurrency(val);
   }
 
-  // Undefined initially to prevent unneeded reactivity
   private _cancelToken: CancelTokenSource | undefined;
 
-  // Frozen to prevent unneeded reactivity.
   private _callbacks: {
     onFulfilled: Array<ApiStateHook<any>>;
     onRejected: Array<ApiStateHook<any>>;
-  } = Object.freeze({ onFulfilled: [], onRejected: [] });
+  } = { onFulfilled: [], onRejected: [] };
 
   /**
    * Attach a callback to be invoked when the request to this endpoint succeeds.
@@ -1264,30 +1270,6 @@ export abstract class ApiState<
     }
   }
 
-  protected _makeReactive() {
-    // Make properties reactive. Works around https://github.com/vuejs/vue/issues/6648
-
-    // Use Object.keys to mock the behavior of
-    // https://github.com/vuejs/vue/blob/4c7a87e2ef9c76b5b75d85102662a27165a23ec7/src/core/observer/index.js#L61
-    const keys = Object.keys(this);
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-
-      // @ts-ignore - Ignore indexer on type without indexer signature.
-      const value = this[key];
-
-      // Don't define sealed object properties (e.g. this._callbacks)
-      if (
-        value == null ||
-        typeof value !== "object" ||
-        !Object.isSealed(value)
-      ) {
-        // // @ts-expect-error Undocumented (but exposed) vue method for making properties reactive.
-        // Vue.util.defineReactive(this, key, value);
-      }
-    }
-  }
-
   constructor(
     protected readonly apiClient: ApiClient<any>,
     private readonly invoker: 
@@ -1325,11 +1307,15 @@ export class ItemApiState<
   /** The metadata of the method being called, if it was provided. */
   $metadata?: ItemMethod;
 
+  private readonly __validationIssues = ref<ValidationIssue[] | null>(null);
   /** Validation issues returned by the previous request. */
-  validationIssues: ValidationIssue[] | null = null;
+  get validationIssues() { return this.__validationIssues.value }
+  set validationIssues(v) { this.__validationIssues.value = v }
 
+  private readonly __result = ref<TResult | null>(null) as Ref<TResult | null>;
   /** Principal data returned by the previous request. */
-  result: TResult | null = null;
+  get result() { return this.__result.value }
+  set result(v) { this.__result.value = v; this.hasResult = (v != null) }
 
   constructor(
     apiClient: ApiClient<any>,
@@ -1340,7 +1326,6 @@ export class ItemApiState<
     >
   ) {
     super(apiClient, invoker);
-    this._makeReactive();
   }
 
   private _objectUrl?: { url?: string, target: TResult, hooked: WeakSet<ComponentPublicInstance>, active: number };
@@ -1420,14 +1405,20 @@ export class ItemApiStateWithArgs<
   TArgsObj,
   TResult
 > extends ItemApiState<TArgs, TResult> {
+
+  private readonly __args = ref<TArgsObj>(this.argsFactory()) as Ref<TArgsObj>;
   /** Values that will be used as arguments if the method is invoked with `this.invokeWithArgs()`. */
-  public args: TArgsObj = this.argsFactory();
+  get args() { return this.__args.value }
+  set args(v) { this.__args.value = v }
 
   /** Invoke the method. If `args` is not provided, the values in `this.args` will be used for the method's parameters. */
   public invokeWithArgs(args: TArgsObj = this.args): InvokerReturnType<"item", TResult> {
-    args = { ...args }; // Copy args so that if we're debouncing,
+
+    // Copy args so that if we're debouncing,
     // the args at the point in time at which invokeWithArgs() was
     // called will be used, rather than the state at the time when the actual API call gets made.
+    args = { ...args }; 
+
     return this._invokeInternal(this, () =>
       this.argsInvoker.apply(this, [this.apiClient, args])
     );
@@ -1470,7 +1461,6 @@ export class ItemApiStateWithArgs<
     >
   ) {
     super(apiClient, invoker);
-    this._makeReactive();
   }
 }
 
@@ -1481,17 +1471,30 @@ export class ListApiState<
   /** The metadata of the method being called, if it was provided. */
   $metadata?: ListMethod;
 
+  private readonly __page = ref<number | null>(null);
   /** Page number returned by the previous request. */
-  page: number | null = null;
-  /** Page size returned by the previous request. */
-  pageSize: number | null = null;
-  /** Page count returned by the previous request. */
-  pageCount: number | null = null;
-  /** Total Count returned by the previous request. */
-  totalCount: number | null = null;
+  get page() { return this.__page.value }
+  set page(v) { this.__page.value = v }
 
+  private readonly __pageSize = ref<number | null>(null);
+  /** Page size returned by the previous request. */
+  get pageSize() { return this.__pageSize.value }
+  set pageSize(v) { this.__pageSize.value = v }
+
+  private readonly __pageCount = ref<number | null>(null);
+  /** Page count returned by the previous request. */
+  get pageCount() { return this.__pageCount.value }
+  set pageCount(v) { this.__pageCount.value = v }
+
+  private readonly __totalCount = ref<number | null>(null);
+  /** Total Count returned by the previous request. */
+  get totalCount() { return this.__totalCount.value }
+  set totalCount(v) { this.__totalCount.value = v }
+
+  private readonly __result = ref<TResult[] | null>(null) as Ref<TResult[] | null>;
   /** Principal data returned by the previous request. */
-  result: TResult[] | null = null;
+  get result() { return this.__result.value }
+  set result(v) { this.__result.value = v }
 
   constructor(
     apiClient: ApiClient<any>,
@@ -1502,7 +1505,6 @@ export class ListApiState<
     >
   ) {
     super(apiClient, invoker);
-    this._makeReactive();
   }
 
   protected setResponseProps(data: ListResult<TResult>) {
@@ -1528,8 +1530,11 @@ export class ListApiStateWithArgs<
   TArgsObj,
   TResult
 > extends ListApiState<TArgs, TResult> {
+  
+  private readonly __args = ref<TArgsObj>(this.argsFactory()) as Ref<TArgsObj>;
   /** Values that will be used as arguments if the method is invoked with `this.invokeWithArgs()`. */
-  public args: TArgsObj = this.argsFactory();
+  get args() { return this.__args.value }
+  set args(v) { this.__args.value = v }
 
   /** Invoke the method. If `args` is not provided, the values in `this.args` will be used for the method's parameters. */
   public invokeWithArgs(args: TArgsObj = this.args): InvokerReturnType<"list", TResult> {
@@ -1557,7 +1562,6 @@ export class ListApiStateWithArgs<
     >
   ) {
     super(apiClient, invoker);
-    this._makeReactive();
   }
 }
 
