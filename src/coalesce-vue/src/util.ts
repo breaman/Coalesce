@@ -1,4 +1,5 @@
 import { addYears } from "date-fns";
+import { ReactiveFlags } from "vue";
 
 export type OwnProps<T, TExclude> = Pick<T, Exclude<keyof T, keyof TExclude>>;
 
@@ -158,3 +159,20 @@ function buildParams(
     add(prefix, obj);
   }
 }
+
+/** This is the property added by `markRaw`. 
+  * We use it directly so we can declare it on the proto of ViewModel/ListViewModel
+  * rather than calling markRaw on each instance.
+  * 
+  * We make these classes nonreactive with Vue, preventing ViewModel instance from being wrapped with a Proxy.
+  * To achieve reactivity, we instead make individual members reactive with `reactive`/`ref`.
+  * 
+  * We have to do this because `reactive` doesn't play nice with prototyped objects.
+  * Any sets to a setter on the ViewModel class will trigger the reactive proxy,
+  * and since the setter is defined on the prototype and Vue checks hasOwnProperty 
+  * when determining if a field is new on an object, all setters trigger reactivity
+  * even if the value didn't change.
+  * 
+  * We can use the export of ReactiveFlags from vue because of https://github.com/vuejs/core/issues/1228
+*/
+export const ReactiveFlags_SKIP = "__v_skip" as ReactiveFlags.SKIP;

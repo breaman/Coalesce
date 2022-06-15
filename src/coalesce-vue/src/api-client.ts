@@ -26,7 +26,7 @@ import {
   mapToDtoFiltered,
   parseValue
 } from "./model.js";
-import { OwnProps, Indexable, objectToQueryString, objectToFormData } from "./util.js";
+import { OwnProps, Indexable, objectToQueryString, objectToFormData, ReactiveFlags_SKIP } from "./util.js";
 
 import axios, {
   AxiosPromise,
@@ -1013,6 +1013,12 @@ export abstract class ApiState<
   TArgs extends any[],
   TResult
 > extends Function {
+  
+  /** See comments on ReactiveFlags_SKIP for explanation. 
+   * @internal
+  */
+  private readonly [ReactiveFlags_SKIP] = true;
+  
   /** The metadata of the method being called, if it was provided. */
   abstract $metadata?: Method;
 

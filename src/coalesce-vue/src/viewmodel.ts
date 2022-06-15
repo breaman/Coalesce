@@ -1,21 +1,5 @@
 import Vue, { ComponentPublicInstance, onBeforeUnmount, reactive, toRaw, ref, markRaw, type ReactiveFlags } from "vue";
 
-/** This is the property added by `markRaw`. 
-  * We use it directly so we can declare it on the proto of ViewModel/ListViewModel
-  * rather than calling markRaw on each instance.
-  * 
-  * We make these classes nonreactive with Vue, preventing ViewModel instance from being wrapped with a Proxy.
-  * To achieve reactivity, we instead make individual members reactive with `reactive`/`ref`.
-  * 
-  * We have to do this because `reactive` doesn't play nice with prototyped objects.
-  * Any sets to a setter on the ViewModel class will trigger the reactive proxy,
-  * and since the setter is defined on the prototype and Vue checks hasOwnProperty 
-  * when determining if a field is new on an object, all setters trigger reactivity
-  * even if the value didn't change.
-  * 
-  * We can use the export of ReactiveFlags from vue because of https://github.com/vuejs/core/issues/1228
-*/
-const ReactiveFlags_SKIP = "__v_skip" as ReactiveFlags.SKIP;
 
 import {
   ModelType,
@@ -44,7 +28,7 @@ import {
   convertToModel,
   mapToModel
 } from "./model.js";
-import { Indexable } from "./util.js";
+import { Indexable, ReactiveFlags_SKIP } from "./util.js";
 import { debounce } from "lodash-es";
 import type { Cancelable, DebounceSettings } from "lodash";
 
