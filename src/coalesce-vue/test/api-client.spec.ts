@@ -8,18 +8,19 @@ import { StudentApiClient } from './targets.apiclients';
 import { Student as StudentMeta } from './targets.metadata'
 import { AxiosError, AxiosResponse, AxiosAdapter } from 'axios';
 import { Student, Advisor } from './targets.models';
-import { delay } from './test-utils';
+import { delay, mountData } from './test-utils';
+import { mount } from '@vue/test-utils';
 
 
 function makeEndpointMock() {
-  return jest.fn<ItemResultPromise<number>, [number | undefined | null]>().mockImplementation(arg => {
+  return vitest.fn((arg: number | undefined | null) => {
     return Promise.resolve({ 
-      data: <ItemResult>{ wasSuccessful: true, object: arg}, 
+      data: <ItemResult>{ wasSuccessful: true, object: arg }, 
       status: 200, 
       statusText: "OK", 
       headers: {}, 
       config:{}
-    })
+    }) as ItemResultPromise<number>
   });
 }
 
@@ -27,7 +28,7 @@ function makeEndpointMock() {
 describe("error handling", () => {
   test("throws error when server returns raw string instead of object", async () => {
     AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: "<!doctype html><html><body></body></html>",
         status: 200
       })
@@ -40,7 +41,7 @@ describe("error handling", () => {
 describe("$withSimultaneousRequestCaching", () => {
   test("uses proper cache key for standard method", async () => {
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockImplementation(async () => {
+      vitest.fn().mockImplementation(async () => {
         // Delay so the calls don't complete instantly (which would subvert request caching).
         await delay(30);
         return <AxiosListResult<Student>>{
@@ -82,7 +83,7 @@ describe("$withSimultaneousRequestCaching", () => {
 
   test("uses proper cache key for custom method", async () => {
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockImplementation(async () => {
+      vitest.fn().mockImplementation(async () => {
         // Delay so the calls don't complete instantly (which would subvert request caching).
         await delay(30);
         return <AxiosResponse<any>>{
@@ -124,7 +125,7 @@ describe("$withSimultaneousRequestCaching", () => {
 describe("$invoke", () => {
   test("doesn't error when params are missing", async () => {
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: {wasSuccessful: true, object: ''},
         status: 200
       })
@@ -148,7 +149,7 @@ describe("$invoke", () => {
     // This might seem like a dumb case to test, but it was actually broken because we were iterating
     // over the actual provided params when mapping the params, instead of over the method's metadata.
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: {wasSuccessful: true, object: ''},
         status: 200
       })
@@ -165,7 +166,7 @@ describe("$invoke", () => {
 
   test("passes single file as FormData", async() => {
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: {wasSuccessful: true, object: ''},
         status: 200
       })
@@ -199,7 +200,7 @@ describe("$invoke", () => {
 
   test("passes file array as FormData", async() => {
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: {wasSuccessful: true, object: ''},
         status: 200
       })
@@ -240,7 +241,7 @@ describe("$invoke", () => {
 
   test("passes Uint8Array as FormData", async() => {
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: {wasSuccessful: true, object: ''},
         status: 200
       })
@@ -277,7 +278,7 @@ describe("$invoke", () => {
     // This makes sure that we correctly send NULL fields the server.
     // When I migrated away from the `qs` lib, I broke this... oops.
     const mock = AxiosClient.defaults.adapter = 
-      jest.fn().mockResolvedValue(<AxiosResponse<any>>{
+      vitest.fn().mockResolvedValue(<AxiosResponse<any>>{
         data: {wasSuccessful: true, object: {}},
         status: 200
       })
@@ -395,7 +396,7 @@ describe("$makeCaller", () => {
   test("passes this to invoker func", async () => {
     const endpointMock = makeEndpointMock();
     type Model = { value: number, caller: () => Promise<any> }
-    const fulfilledMock = jest.fn()
+    const fulfilledMock = vitest.fn()
     const model = <Model>{
       value: 42,
       caller: new StudentApiClient()
@@ -519,7 +520,7 @@ describe("$makeCaller", () => {
   test("concurrencyMode 'cancel' cancels all previous requests", async () => {
     
     AxiosClient.defaults.adapter = 
-      jest.fn().mockImplementation(async () => {
+      vitest.fn().mockImplementation(async () => {
         await delay(20);
         return <AxiosResponse<any>>{
           data: { wasSuccessful: true, object: { personId: 1 }},
@@ -556,7 +557,7 @@ describe("$makeCaller", () => {
   test("handles successful file response", async () => {
     let blob = new Blob(["foo"]);
 
-    AxiosClient.defaults.adapter = jest.fn().mockImplementation(async () => <AxiosResponse<any>>{
+    AxiosClient.defaults.adapter = vitest.fn().mockImplementation(async () => <AxiosResponse<any>>{
       data: blob,
       status: 200,
       statusText: "OK",
@@ -576,7 +577,7 @@ describe("$makeCaller", () => {
   test("handles failed file response", async () => {
     let blob = new Blob(['{ "wasSuccessful": false, "message": "broken" }'], {type: "application/json"});
 
-    AxiosClient.defaults.adapter = jest.fn().mockImplementation(async () => {
+    AxiosClient.defaults.adapter = vitest.fn().mockImplementation(async () => {
       throw {
         isAxiosError: true,
         code: 400,
@@ -599,35 +600,34 @@ describe("$makeCaller", () => {
   test("getResultObjectUrl", async () => {
     let currentBlob = new Blob(["foo"]);
 
-    AxiosClient.defaults.adapter = jest.fn().mockImplementation(async () => <AxiosResponse<any>>{
+    AxiosClient.defaults.adapter = vitest.fn().mockImplementation(async () => <AxiosResponse<any>>{
       data: currentBlob,
       status: 200,
       headers: {}
     })
 
-    const createUrlMock = URL.createObjectURL = jest.fn().mockImplementation(() =>
+    const createUrlMock = URL.createObjectURL = vitest.fn().mockImplementation(() =>
       `blob://${Math.random().toString(36).slice(2)}`)
-    const revokeUrlMock = URL.revokeObjectURL = jest.fn()
+    const revokeUrlMock = URL.revokeObjectURL = vitest.fn()
     
     const caller = new StudentApiClient().$makeCaller(
       "item", 
       (c) => c.getFile(42, 'bob'),
     )
-    const vue = new Vue();
-    const $onSpy = jest.spyOn(vue, "$on");
-    const $offSpy = jest.spyOn(vue, "$off");
+    const wrapper = mount({ });
+    const vue = wrapper.vm;
+
+    const beforeUnmountHooks = () => (vue.$ as any)['bum'];
 
     // Act/assert - before any invocation.
     expect(caller.getResultObjectUrl(vue)).toBeUndefined();
-    expect($onSpy).toBeCalledTimes(0);
-    expect($offSpy).toBeCalledTimes(0);
+    expect(beforeUnmountHooks()).toBeUndefined();
 
     // Act/Assert - first invocation
     await caller();
     const url1 = caller.getResultObjectUrl(vue);
     expect(createUrlMock).toBeCalledWith(caller.result);
-    expect($onSpy).toBeCalledTimes(1);
-    expect($offSpy).toBeCalledTimes(0);
+    expect(beforeUnmountHooks()).toHaveLength(1);
 
     // Act/Assert - second invocation revokes first url and creates a second
     currentBlob = new Blob(["bar"]);
@@ -635,18 +635,16 @@ describe("$makeCaller", () => {
     const url2 = caller.getResultObjectUrl(vue);
     expect(revokeUrlMock).toBeCalledWith(url1);
     expect(createUrlMock).toBeCalledWith(caller.result);
-    expect($onSpy).toBeCalledTimes(2);
-    expect($offSpy).toBeCalledTimes(1);
+    expect(beforeUnmountHooks()).toHaveLength(1);
 
     // Multiple invocations keep the same URL
     const url2_again = caller.getResultObjectUrl(vue);
     expect(url2_again).toBe(url2);
 
     // Act/Assert - Teardown
-    vue.$destroy();
+    wrapper.unmount();
     expect(revokeUrlMock).toBeCalledWith(url2);
-    expect($onSpy).toBeCalledTimes(2);
-    expect($offSpy).toBeCalledTimes(3); // This is 3 because vue itself will also call $off() with no params when a component is destroyed.
+    expect(beforeUnmountHooks()).toHaveLength(1);
   })
 })
 
@@ -699,7 +697,7 @@ describe("$makeCaller with args object", () => {
 
   test("item caller url returns correct url", async () => {
     // Should never be called:
-    const adapter = AxiosClient.defaults.adapter = jest.fn().mockResolvedValue('foo')
+    const adapter = AxiosClient.defaults.adapter = vitest.fn().mockResolvedValue('foo')
 
     const caller = new StudentApiClient().$makeCaller(
       "item", 
@@ -734,11 +732,7 @@ describe("$makeCaller with args object", () => {
       const endpointMock = makeEndpointMock();
       const caller = makeCaller(endpointMock);
 
-      const vue = new Vue({
-        data: {
-          caller
-        }
-      });
+      const vue = mountData({ caller });
 
       let called = false;
       vue.$watch('caller.args.num', () => {

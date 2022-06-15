@@ -1,3 +1,5 @@
+import { mount } from "@vue/test-utils";
+import { defineComponent } from "vue";
 
 export const MetadataSymbol = Symbol("metadata");
 
@@ -41,4 +43,13 @@ export function expectDeepMatch(actual: any, expected: any) {
 
 export async function delay(ms: number) {
   await new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function mountData<T>(data: T) {
+  return mount(defineComponent({
+    template: 'x',
+    data() {
+      return data
+    }
+  })).vm;
 }

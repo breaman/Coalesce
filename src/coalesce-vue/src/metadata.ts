@@ -4,6 +4,8 @@
    -----------------------------
 */
 
+import { markRaw } from "vue"
+
 /** Role that a value or property plays in a relational model. */
 export type ValueRole = "value" | "primaryKey" | "foreignKey" | "referenceNavigation" | "collectionNavigation"
 
@@ -606,7 +608,7 @@ export function solidify<T>(root: T): T {
       }
     }
 
-    return Object.freeze(o);
+    return Object.freeze(markRaw(o));
   }
 
   return walk(root);

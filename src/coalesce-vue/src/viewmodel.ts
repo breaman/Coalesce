@@ -1,4 +1,5 @@
-import Vue from "vue";
+import Vue, { createApp, onUnmounted, ComponentInternalInstance, ComponentPublicInstance, onBeforeUnmount, reactive, toRaw, ref, shallowRef, markRaw } from "vue";
+
 
 import {
   ModelType,
@@ -73,7 +74,7 @@ export abstract class ViewModel<
   // Underlying object which will hold the backing values
   // of the custom getters/setters. Not for external use.
   // Must exist in order to for Vue to pick it up and add reactivity.
-  private $data: TModel & {[propName: string]: any} = convertToModel({}, this.$metadata);
+  private $data: TModel & {[propName: string]: any} = reactive(convertToModel({}, this.$metadata));
 
   /** 
    * A number unique among all ViewModel instances that will be unchanged for the instance's lifetime. 
@@ -542,7 +543,7 @@ export abstract class ViewModel<
    * @param vue A Vue instance through which the lifecycle of the watcher will be managed.
    * @param options Options to control how the auto-saving is performed.
    */
-  public $startAutoSave(vue: Vue, options: AutoSaveOptions<this> = {}) {
+  public $startAutoSave(vue: ComponentPublicInstance, options: AutoSaveOptions<this> = {}) {
     
     let state = this._autoSaveState;
 
@@ -556,7 +557,7 @@ export abstract class ViewModel<
 
     this.$stopAutoSave();
 
-    state = this._autoSaveState = new AutoCallState<AutoSaveOptions<any>>()
+    state = this._autoSaveState ??= new AutoCallState<AutoSaveOptions<any>>()
     state.options = options;
 
     let ranOnce = false
@@ -635,10 +636,7 @@ export abstract class ViewModel<
 
   /** Stops auto-saving if it is currently enabled. */
   public $stopAutoSave() {
-    if (this._autoSaveState) {
-      stopAutoCall(this._autoSaveState);
-      this._autoSaveState = undefined;
-    }
+    this._autoSaveState?.cleanup!();
   }
 
   /**
@@ -708,9 +706,13 @@ export abstract class ViewModel<
       writable: false
     })
 
+    const thisReactive = reactive(this) as this;
+
     if (initialDirtyData) {
-      this.$loadDirtyData(initialDirtyData);
+      thisReactive.$loadDirtyData(initialDirtyData);
     }
+
+    return thisReactive;
   }
 }
 
@@ -723,7 +725,13 @@ export abstract class ListViewModel<
   public static typeLookup: ListViewModelTypeLookup | null = null;
 
   /** The parameters that will be passed to `/list` and `/count` calls. */
-  public $params = new ListParameters();
+  private _params = ref(new ListParameters());
+  public get $params() {
+    return this._params.value;
+  }
+  public set $params(val) {
+    this._params.value = val;
+  }
 
   /** Wrapper for `$params.dataSource` */
   public get $dataSource() {
@@ -744,16 +752,16 @@ export abstract class ListViewModel<
   /**
    * The current set of items that have been loaded into this ListViewModel.
    */
-  private _items = new ViewModelCollection(this.$metadata, this);
+  private _items = ref(new ViewModelCollection(this.$metadata, this));
   public get $items(): TItem[] {
-    return (this._items as unknown) as TItem[];
+    return (this._items.value as unknown) as TItem[];
   }
   public set $items(val: TItem[]) {
-    if ((this._items as any) === val) return;
+    if ((this._items.value as any) === val) return;
 
     const vmc = new ViewModelCollection(this.$metadata, this);
     if (val) vmc.push(...val);
-    this._items = vmc;
+    this._items.value = vmc;
   }
 
   /** True if the page set in $params.page is greater than 1 */
@@ -826,7 +834,7 @@ export abstract class ListViewModel<
    * @param vue A Vue instance through which the lifecycle of the watcher will be managed.
    * @param options Options that control the auto-load behavior.
    */
-  public $startAutoLoad(vue: Vue, options: AutoLoadOptions<this> = {}) {
+  public $startAutoLoad(vue: ComponentPublicInstance, options: AutoLoadOptions<this> = {}) {
     const { wait = 1000, predicate = undefined, debounce: debounceOptions } = options;
     this.$stopAutoLoad();
 
@@ -860,7 +868,7 @@ export abstract class ListViewModel<
 
   /** Stops auto-loading if it is currently enabled. */
   public $stopAutoLoad() {
-    stopAutoCall(this._autoLoadState);
+    this._autoLoadState?.cleanup!();
   }
 
   constructor(
@@ -871,7 +879,9 @@ export abstract class ListViewModel<
 
     /** Instance of an API client for the model through which direct, stateless API requests may be made. */
     public readonly $apiClient: TApi
-  ) {}
+  ) {
+    markRaw(this);
+  }
 }
 
 export class ServiceViewModel<
@@ -887,7 +897,9 @@ export class ServiceViewModel<
 
     /** Instance of an API client for the model through which direct, stateless API requests may be made. */
     public readonly $apiClient: TApi
-  ) {}
+  ) {
+    return reactive(this) as this;
+  }
 }
 
 /** Factory for creating new ViewModels from some initial data.
@@ -1036,13 +1048,12 @@ export class ViewModelCollection<T extends ViewModel> extends Array<T> {
   readonly $parent!: any;
   $hasLoaded!: boolean;
 
-
   override push(...items: T[]): number {
     // MUST evaluate the .map() before grabbing the .push()
     // method from the proto. See test "newly loaded additional items are reactive".
     const viewModelItems = viewModelCollectionMapItems(items, this, true);
 
-    return resolveProto(this).push.apply(this, viewModelItems);
+    return super.push(...viewModelItems);
   }
 
   override splice(start: number, deleteCount?: number, ...items: T[]): T[] {
@@ -1052,8 +1063,7 @@ export class ViewModelCollection<T extends ViewModel> extends Array<T> {
       ? viewModelCollectionMapItems(items, this, true)
       : items;
 
-    return resolveProto(this).splice.call(
-      this,
+    return super.splice(
       start, deleteCount as any, ...viewModelItems
     );
   }
@@ -1082,18 +1092,18 @@ export class ViewModelCollection<T extends ViewModel> extends Array<T> {
         writable: true,
         configurable: false
       },
-      push: {
-        value: ViewModelCollection.prototype.push,
-        enumerable: false,
-        writable: false,
-        configurable: false
-      },
-      splice: {
-        value: ViewModelCollection.prototype.splice,
-        enumerable: false,
-        writable: false,
-        configurable: false
-      }
+      // push: {
+      //   value: ViewModelCollection.prototype.push,
+      //   enumerable: false,
+      //   writable: false,
+      //   configurable: false
+      // },
+      // splice: {
+      //   value: ViewModelCollection.prototype.splice,
+      //   enumerable: false,
+      //   writable: false,
+      //   configurable: false
+      // }
     });
   }
 }
@@ -1224,7 +1234,7 @@ export function defineProps<T extends new () => ViewModel<any, any>>(
               const $data = (this as any).$data;
               const old = $data[propName];
 
-              if (old === incomingValue) {
+              if (old === incomingValue || toRaw(old) === incomingValue) {
                 // Setting same value. Do nothing.
                 return;
               }
@@ -1532,12 +1542,16 @@ export function updateViewModelFromModel<
             throw `Expected array for incoming value for ${metadata.name}.${prop.name}`;
           }
 
-          target[propName] = rebuildModelCollectionForViewModelCollection(
+          const newCollection = rebuildModelCollectionForViewModelCollection(
             prop.itemType.typeDef,
             currentValue,
             incomingValue,
             isCleanData
           ) as any;
+
+          if (currentValue !== newCollection) {
+            target[propName] = newCollection;
+          }
           break;
 
         case "primaryKey":
@@ -1566,7 +1580,8 @@ export function updateViewModelFromModel<
 class AutoCallState<TOptions = any> {
   active: boolean = false;
   cleanup: Function | null = null;
-  vue: Vue | null = null;
+  vue: ComponentPublicInstance | null = null;
+  hooked = new WeakSet<ComponentPublicInstance>();
   options: TOptions | null = null;
   trigger: (() => void) | null = null;
 
@@ -1578,30 +1593,33 @@ class AutoCallState<TOptions = any> {
 
 function startAutoCall(
   state: AutoCallState,
-  vue: Vue,
+  vue: ComponentPublicInstance,
   watcher?: () => void,
   debouncer?: Cancelable
 ) {
-  const destroyHook = () => stopAutoCall(state);
-
-  vue.$on("hook:beforeDestroy", destroyHook);
+  if (!state.hooked.has(vue)) {
+    state.hooked.add(vue)
+    onBeforeUnmount(
+      // Only cleanup if the component instance on the state is the owner of the hook.
+      // Since we can't cleanup hooks in vue3, this hook may be firing for a component
+      // that no longer owns this autocall state, in which case it should be ignored.
+      () => state.vue === vue && state.cleanup!(), 
+      vue.$
+    );
+  }
+  
   state.vue = vue;
   state.cleanup = () => {
     if (!state.active) return;
+
     // Destroy the watcher
     watcher?.();
+
     // Cancel the debouncing timer if there is one.
     if (debouncer) debouncer.cancel();
-    // Cleanup the hook, in case we're not responding to beforeDestroy but instead to a direct call to stopAutoCall.
-    // If we didn't do this, autosave could later get disabled when the original component is destroyed,
-    // even though if was later attached to a different component that is still alive.
-    vue.$off("hook:beforeDestroy", destroyHook);
+
+    state.active = false;
+    state.vue = null; // cleanup for GC
   };
   state.active = true;
-}
-
-function stopAutoCall(state: AutoCallState) {
-  if (!state.active) return;
-  state.cleanup!();
-  state.active = false;
 }

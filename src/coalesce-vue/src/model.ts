@@ -1,4 +1,4 @@
-import Vue from "vue";
+import Vue, { ComponentPublicInstance } from "vue";
 
 
 // This will tree shake correctly as of v2.0.0-alpha.21
@@ -902,10 +902,11 @@ export function valueDisplay(
   );
 }
 
-import type { Route } from 'vue-router';
+// Type import to get vue-router's type augmentations
+import type { Router } from 'vue-router';
 
 export function bindToQueryString(
-  vue: Vue,
+  vue: ComponentPublicInstance,
   obj: any, // TODO: Maybe only support objects with $metadata? Would eliminate need for `parse`, and could allow for very strong typings.
   key: string, 
   queryKey: string = key, 
@@ -964,16 +965,16 @@ export function bindToQueryString(
 }
 
 export function bindKeyToRouteOnCreate(
-  vue: Vue,
+  vue: ComponentPublicInstance,
   model: Model<ModelType>,
   routeParamName: string = 'id',
   keepQuery: boolean = false,
-  routeName?: string | null,
+  routeName?: string | symbol | null,
 ) {
   routeName = routeName ?? vue.$route.name 
   vue.$watch(
     () => (model as any)[model.$metadata.keyProp.name],
-    (pk, o) => {
+    (pk: any, o: any) => {
       if (!routeName) {
         throw Error("Cannot use bindKeyToRouteOnCreate with unnamed routes.")
       }

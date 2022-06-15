@@ -1,4 +1,4 @@
-import Vue from "vue";
+import Vue, { ComponentPublicInstance, onBeforeUnmount } from "vue";
 
 
 import {
@@ -1282,8 +1282,8 @@ export abstract class ApiState<
         typeof value !== "object" ||
         !Object.isSealed(value)
       ) {
-        // @ts-expect-error Undocumented (but exposed) vue method for making properties reactive.
-        Vue.util.defineReactive(this, key, value);
+        // // @ts-expect-error Undocumented (but exposed) vue method for making properties reactive.
+        // Vue.util.defineReactive(this, key, value);
       }
     }
   }
@@ -1343,12 +1343,12 @@ export class ItemApiState<
     this._makeReactive();
   }
 
-  private _objectUrl?: { url: string, target: TResult, destroy: Function };
+  private _objectUrl?: { url?: string, target: TResult, hooked: WeakSet<ComponentPublicInstance>, active: number };
   /** If the result is a blob or file, returns an Object URL representing that result. 
    * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL 
    * @param vue A Vue instance through which the lifecycle of the object URL will be managed.
    */
-  public getResultObjectUrl(vue: Vue): TResult extends Blob ? string | undefined : undefined {
+  public getResultObjectUrl(vue: ComponentPublicInstance): TResult extends Blob ? string | undefined : undefined {
     const result = this.result;
 
     if (result == this._objectUrl?.target) {
@@ -1360,26 +1360,35 @@ export class ItemApiState<
       return this._objectUrl?.url;
     }
     
-    if (this._objectUrl) {
+    if (this._objectUrl?.url) {
       // If we got this far and we have a stored URL, it doesn't match the current result.
       // Destroy that URL and then we'll make a new one.
-      this._objectUrl.destroy();
-      this._objectUrl = undefined;
+      URL.revokeObjectURL(this._objectUrl?.url)
     }
 
     if (result instanceof Blob) {
       // Result is useful as an object url. Make one!
-      const objUrl = this._objectUrl = {
-        url: URL.createObjectURL(result),
-        target: result,
-        destroy: () => {
-          // Revoke the URL so we're not leaking memory.
-          URL.revokeObjectURL(objUrl.url);
-          vue.$off("hook:beforeDestroy", objUrl.destroy);
-        }
-      }
 
-      vue.$on("hook:beforeDestroy", objUrl.destroy);
+      // @ts-expect-error partial initialization
+      this._objectUrl ??= {
+        hooked: new WeakSet(),
+        active: 0
+      }
+      const objUrl = this._objectUrl!;
+      objUrl.url = URL.createObjectURL(result);
+      objUrl.target = result;
+
+      if (!objUrl.hooked.has(vue)) {
+        objUrl.active++;
+        objUrl.hooked.add(vue);
+        onBeforeUnmount(() => { 
+          objUrl.active--;
+          if (objUrl.url && objUrl.active == 0) {
+            URL.revokeObjectURL(objUrl.url);
+            objUrl.url = undefined;
+          }
+         }, vue.$)
+      }
 
       // @ts-expect-error TS can't figure out that we correctly narrowed on TResult here.
       return this._objectUrl.url
