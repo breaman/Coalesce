@@ -16,45 +16,34 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Watch, Prop } from 'vue-property-decorator'
-import MetadataComponent from '../c-metadata-component'
+import { useMetadataProps } from '../c-metadata-component'
 import { ListViewModel, ModelType } from 'coalesce-vue';
 
 import CAdminMethods from './c-admin-methods.vue';
 import CAdminTable from './c-admin-table.vue';
+import { defineComponent } from '@vue/runtime-core';
+import { PropType } from 'vue';
 
-@Component({
+export default defineComponent({
+
   name: 'c-admin-table-page',
   components: {
     CAdminMethods, CAdminTable
-  }
-})
-export default class extends MetadataComponent {
-  /** Support for common convention of exposing 'pageTitle' from router-view hosted components. */
-  get pageTitle() {
-    return this.metadata.displayName + " List"
-  }
+  },
 
-  @Prop({required: false, type: String, default: null})
-  public type!: string | null;
+  props: {
+    type: { required: false, type: String, default: null },
+    list: { required: false, type: Object as PropType<ListViewModel> },
+  },
 
-  @Prop({required: false, type: Object})
-  public list!: ListViewModel<any,any> | null;
+  setup() {
+    return { ...useMetadataProps() }
+  },
 
-  listVM: ListViewModel<any,any> = null as any;
-
-  get metadata(): ModelType {
-    if (this.listVM) {
-      return this.listVM.$metadata
-    }
-    // TODO: this message is bad.
-    throw `No metadata available - no list provided, and couldn't create one.`
-  }
-
-  created() {
-    // Create our ListViewModel instance if one was not provided.
+  data() {
+    let listVM;
     if (this.list) {
-      this.listVM = this.list;
+      listVM = this.list;
     } else {
       if (!this.type) {
         throw Error("c-admin-table-page: If prop `list` is not provided, `type` is required.")
@@ -62,21 +51,36 @@ export default class extends MetadataComponent {
         // TODO: Bake a `getOrThrow` into `typeLookup`.
         throw Error(`No model named ${this.type} is registered to ListViewModel.typeLookup`)
       }
-      this.listVM = new ListViewModel.typeLookup![this.type]
+      listVM = new ListViewModel.typeLookup![this.type]
+    }
+
+    return {
+      listVM
+    }
+  },
+
+  computed: {
+    /** Support for common convention of exposing 'pageTitle' from router-view hosted components. */
+    pageTitle() {
+      return this.metadata.displayName + " List"
+    },
+      
+    metadata(): ModelType {
+      if (this.listVM) {
+        return this.listVM.$metadata
+      }
+      // TODO: this message is bad.
+      throw `No metadata available - no list provided, and couldn't create one.`
     }
   }
-
-}
+})
 </script>
 
 
 <style lang="scss">
   .c-admin-table-page {
-    
     .c-admin-table-page--methods {
       margin-top: 30px;
     }
-
   }
-
 </style>

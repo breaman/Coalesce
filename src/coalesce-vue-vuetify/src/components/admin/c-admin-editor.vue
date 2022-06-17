@@ -88,7 +88,6 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Watch, Prop } from "vue-property-decorator";
 import {
   Model,
   ClassType,
@@ -103,72 +102,78 @@ import CInput from "../input/c-input";
 import CAdminDisplay from "./c-admin-display";
 
 import { isPropReadOnly } from "../../util";
+import { PropType, defineComponent } from "vue";
 
-@Component({
+export default defineComponent({
   name: "c-admin-editor",
   components: {
     CInput,
     CAdminDisplay
-  }
-})
-export default class extends Vue {
-  @Prop({ required: true, type: Object })
-  public model!: ViewModel<Model<ModelType>>;
-
-  get metadata(): ModelType {
-    if (this.model) {
-      return this.model.$metadata;
-    }
-    throw `No metadata available.`;
-  }
-
-  get showContent() {
-    const model = this.model;
-    return (
-      // If we have loaded at least once, we're in an edit scenario and the object is loaded.
-      model.$load.wasSuccessful ||
-      // If we're not loading now, we're in a create scenario.
-      !model.$load.isLoading
-    );
-  }
-
-  get hasPk() {
-    return this.model.$primaryKey != null;
-  }
-
-  get canEdit() {
-    const metadata = this.metadata;
-    if (!metadata) return false;
-
-    return (
-      (metadata.behaviorFlags &
-        (this.hasPk ? BehaviorFlags.Edit : BehaviorFlags.Create)) !=
-      0
-    );
-  }
-
-  propInputBinds(p: Property) {
-    let readonly = isPropReadOnly(p, this.model);
-    
-    return {
-      readonly
-    };
-  }
-
-  get showProps() {
-    if (!this.model) return [];
-
-    return Object.values(this.metadata.props).filter(
-      (p: Property) =>
-        p.hidden === undefined || (p.hidden & HiddenAreas.Edit) == 0
-      // && (!p.dontSerialize || p.role == "referenceNavigation" || p.role == "collectionNavigation")
-    );
-  }
+  },
 
   mounted() {
     (this.$refs.form as any).validate();
+  },
+
+  props: {
+    model: {required: true, type: Object as PropType<ViewModel<Model<ModelType>>> }
+  },
+
+  methods: {
+    propInputBinds(p: Property) {
+      let readonly = isPropReadOnly(p, this.model);
+      
+      return {
+        readonly
+      };
+    }
+  },
+
+  computed: {
+    metadata(): ModelType {
+      if (this.model) {
+        return this.model.$metadata;
+      }
+      throw `No metadata available.`;
+    },
+
+    showContent() {
+      const model = this.model;
+      return (
+        // If we have loaded at least once, we're in an edit scenario and the object is loaded.
+        model.$load.wasSuccessful ||
+        // If we're not loading now, we're in a create scenario.
+        !model.$load.isLoading
+      );
+    },
+
+    hasPk() {
+      return this.model.$primaryKey != null;
+    },
+
+    canEdit() {
+      const metadata = this.metadata;
+      if (!metadata) return false;
+
+      return (
+        (metadata.behaviorFlags &
+          (this.hasPk ? BehaviorFlags.Edit : BehaviorFlags.Create)) !=
+        0
+      );
+    },
+
+    showProps() {
+      if (!this.model) return [];
+
+      return Object.values(this.metadata.props).filter(
+        (p: Property) =>
+          p.hidden === undefined || (p.hidden & HiddenAreas.Edit) == 0
+        // && (!p.dontSerialize || p.role == "referenceNavigation" || p.role == "collectionNavigation")
+      );
+    }
   }
-}
+})
+
 </script>
 
 <style lang="scss">

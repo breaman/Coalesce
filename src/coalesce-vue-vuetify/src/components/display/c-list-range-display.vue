@@ -20,17 +20,17 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { defineComponent, Prop, PropType } from 'vue'
 import type { ListViewModel } from 'coalesce-vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'c-list-range-display',
   props: {
-    list: { required: true, type: Object }
+    list: { required: true, type: Object as PropType<ListViewModel> }
   },
   computed: {
     rangeStart(): number {
-      const list = this.list as ListViewModel;
+      const list = this.list!;
       const page = list.$load.page ?? 0;
       const pageSize = list.$load.pageSize ?? 0;
 
@@ -42,9 +42,7 @@ export default Vue.extend({
     },
 
     rangeEnd(): number {
-      const list = this.list as ListViewModel;
-      const page = list.$load.page ?? 0;
-      const pageSize = list.$load.pageSize ?? 0;
+      const list = this.list!;
 
       if (!list.$load.totalCount) {
         return 0;

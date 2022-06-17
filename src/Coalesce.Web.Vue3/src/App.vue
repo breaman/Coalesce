@@ -41,7 +41,6 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
 import { Base, Component } from 'vue-facing-decorator';
 
 @Component({

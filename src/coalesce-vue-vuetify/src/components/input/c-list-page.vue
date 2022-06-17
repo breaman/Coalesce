@@ -35,12 +35,15 @@
 
 
 <script lang="ts">
-export default {
+import { ListViewModel } from "coalesce-vue"
+import { defineComponent, Prop, PropType } from "vue"
+
+export default defineComponent({
   name: 'c-list-page',
   props: { 
-    list: { required: true },
+    list: { required: true, type: Object as PropType<ListViewModel> },
   }
-}
+})
 </script>
 
 

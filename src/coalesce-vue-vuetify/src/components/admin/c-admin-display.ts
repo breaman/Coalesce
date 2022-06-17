@@ -1,21 +1,19 @@
-import Vue, { PropOptions } from "vue";
-import { getValueMeta } from "../c-metadata-component";
+import { defineComponent, PropType, h as _c } from "vue";
+import { ForSpec, getValueMeta } from "../c-metadata-component";
 import { propDisplay, Model, ClassType, ViewModelCollection } from "coalesce-vue";
 
 import CDisplay from '../display/c-display'
 
-export default Vue.extend({
+export default defineComponent({
   name: "c-admin-display",
-  functional: true,
+  
   props: {
-    for: <PropOptions<any>>{ required: false },
-    model: <PropOptions<Model<ClassType>>>{ type: Object },
+    for: { required: false, type: [String, Object] as PropType<ForSpec> },
+    model: { required: false, type: Object as PropType<Model<ClassType>> },
   },
 
-	render(_c, ctx) {
-    // NOTE: CreateElement fn must be named `_c` for unplugin-vue-components to work correctly.
-    
-    const props = ctx.props;
+	render() {
+    const props = this.$props;
     const { model } = props;
 
     if (model == null) {
@@ -26,7 +24,7 @@ export default Vue.extend({
     }
 
     const modelMeta = model ? model.$metadata : null;
-    let meta = getValueMeta(props.for, modelMeta, ctx.parent.$coalesce.metadata);
+    let meta = getValueMeta(props.for, modelMeta, this.$coalesce.metadata);
     if (!meta && modelMeta && "displayProp" in modelMeta) {
       meta = modelMeta.displayProp || null;
     }
@@ -51,7 +49,7 @@ export default Vue.extend({
               // If we just gave a named raw location, it would always use the coalesce admin route
               // instead of the user-overridden one (that the user overrides by declaring another
               // route with the same path).
-              to: ctx.parent.$router.resolve({ 
+              to: this.$router.resolve({ 
                 name: 'coalesce-admin-list', 
                 params: { type: meta.itemType.typeDef.name },
                 query: { ['filter.' + meta.foreignKey.name]: pkValue }
@@ -79,7 +77,7 @@ export default Vue.extend({
                 // If we just gave a named raw location, it would always use the coalesce admin route
                 // instead of the user-overridden one (that the user overrides by declaring another
                 // route with the same path).
-                to: ctx.parent.$router.resolve({ 
+                to: this.$router.resolve({ 
                   name: 'coalesce-admin-item', 
                   params: { 
                     type: meta.typeDef.name,
@@ -94,6 +92,6 @@ export default Vue.extend({
       }
     }
     
-    return _c(CDisplay, { props: props, ...ctx.data }, ctx.children);
+    return _c(CDisplay, { ...this.$attrs, ...this.$props }, this.$slots);
   }
 });

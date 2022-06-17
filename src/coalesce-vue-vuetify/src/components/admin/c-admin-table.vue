@@ -72,12 +72,8 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Watch, Prop } from "vue-property-decorator";
 import {
-  Model,
-  ClassType,
   ListViewModel,
-  Property,
   ModelType,
   ViewModel,
   BehaviorFlags,
@@ -89,74 +85,86 @@ import {
 
 import CTable from "../display/c-table.vue";
 import CAdminTableToolbar from "./c-admin-table-toolbar.vue";
+import { defineComponent, PropType } from "@vue/runtime-core";
+import { useRouter } from "vue-router";
 
-@Component({
+export default defineComponent({
   name: "c-admin-table",
   components: {
     CTable,
     CAdminTableToolbar
-  }
-})
-export default class extends Vue {
-  @Prop({ required: true, type: Object })
-  public list!: any;
+  },
 
-  @Prop({ required: false })
-  pageSizes?: number[];
+  props: {
+    list: { required: false, type: Object as PropType<ListViewModel> },
+    pageSizes: { required: false, type: Array as PropType<number[]> },
+    queryBind: { type: Boolean, default: false },
+  },
 
-  @Prop({ type: Boolean, default: false })
-  queryBind?: boolean;
+  setup() {
+    return { router: useRouter() }
+  },
 
-  editable = false;
-
-  get viewModel(): ListViewModel {
-    if (this.list instanceof ListViewModel) return this.list;
-    throw Error(
-      "c-admin-table: prop `list` is required, and must be a ListViewModel."
-    );
-  }
-
-  async deleteItemWithConfirmation(item: ViewModel<any, any>) {
-    if (confirm("Are you sure you wish to delete this item?")) {
-      await item.$delete();
-      await this.viewModel.$load();
+  data() {
+    return {
+      editable: false
     }
-  }
+  },
 
-  get metadata(): ModelType {
-    return this.viewModel.$metadata;
-  }
+  computed: {
+    viewModel(): ListViewModel {
+      if (this.list instanceof ListViewModel) return this.list;
+      throw Error(
+        "c-admin-table: prop `list` is required, and must be a ListViewModel."
+      );
+    },
 
-  get canEdit() {
-    return (
-      this.metadata && (this.metadata.behaviorFlags & BehaviorFlags.Edit) != 0
-    );
-  }
-  get canDelete() {
-    return (
-      this.metadata && (this.metadata.behaviorFlags & BehaviorFlags.Delete) != 0
-    );
-  }
-  get hasInstanceMethods() {
-    return (
-      this.metadata &&
-      Object.values(this.metadata.methods).some(m => !m.isStatic)
-    );
-  }
+    metadata(): ModelType {
+      return this.viewModel.$metadata;
+    },
 
-  editRoute(item: ViewModel) {
-    // Resolve to an href to allow overriding of admin routes in userspace.
-    // If we just gave a named raw location, it would always use the coalesce admin route
-    // instead of the user-overridden one (that the user overrides by declaring another
-    // route with the same path).
-    return this.$router.resolve({
-      name: "coalesce-admin-item",
-      params: {
-        type: this.metadata.name,
-        id: item.$primaryKey
+    canEdit() {
+      return (
+        this.metadata && (this.metadata.behaviorFlags & BehaviorFlags.Edit) != 0
+      );
+    },
+
+    canDelete() {
+      return (
+        this.metadata && (this.metadata.behaviorFlags & BehaviorFlags.Delete) != 0
+      );
+    },
+
+    hasInstanceMethods() {
+      return (
+        this.metadata &&
+        Object.values(this.metadata.methods).some(m => !m.isStatic)
+      );
+    }
+  },
+
+  methods: {
+    async deleteItemWithConfirmation(item: ViewModel<any, any>) {
+      if (confirm("Are you sure you wish to delete this item?")) {
+        await item.$delete();
+        await this.viewModel.$load();
       }
-    }).resolved.fullPath;
-  }
+    },
+
+    editRoute(item: ViewModel) {
+      // Resolve to an href to allow overriding of admin routes in userspace.
+      // If we just gave a named raw location, it would always use the coalesce admin route
+      // instead of the user-overridden one (that the user overrides by declaring another
+      // route with the same path).
+      return this.router.resolve({
+        name: "coalesce-admin-item",
+        params: {
+          type: this.metadata.name,
+          id: item.$primaryKey
+        }
+      }).fullPath;
+    }
+  },
 
   created() {
     if (this.queryBind) {
@@ -171,19 +179,19 @@ export default class extends Vue {
 
       // Pull initial parameters from the querystring before we setup watchers.
       this.viewModel.$params = mapQueryToParams(
-        this.$route.query,
+        this.router.currentRoute.value.query,
         ListParameters,
         this.viewModel.$metadata
       );
-
+      
       this.$watch(
         () => mapParamsToDto(this.viewModel.$params),
-        (mappedParams, old) => {
-          this.$router.replace({
+        (mappedParams: any, old: any) => {
+          this.router.replace({
             query: {
               // First, take all existing query params so that any that aren't handled
               // by mapQueryToParams/mapParamsToDto don't get lost
-              ...this.$route.query,
+              ...this.router.currentRoute.value.query,
               // Next, set all previous query-mapped params to undefined
               // so that any that aren't in the new mappedParams object get unset
               ...(typeof old == "object"
@@ -205,7 +213,7 @@ export default class extends Vue {
 
       // When the query changes, grab the new value.
       this.$watch(
-        () => this.$route.query,
+        () => this.router.currentRoute.value.query,
         (v: any) => {
           this.viewModel.$params = mapQueryToParams(
             v,
@@ -232,7 +240,9 @@ export default class extends Vue {
     this.viewModel.$startAutoLoad(this, { wait: 0 });
     this.viewModel.$load();
   }
-}
+
+
+})
 </script>
 
 <style lang="scss">

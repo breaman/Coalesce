@@ -32,12 +32,13 @@
 
 
 <script lang="ts">
-import Vue from 'vue'
+import { ListViewModel } from 'coalesce-vue'
+import { defineComponent, PropType } from 'vue'
 
-export default Vue.extend({
+export default defineComponent({
   name: 'c-list-page-size',
   props: { 
-    list: { required: true },
+    list: { required: true, type: Object as PropType<ListViewModel> },
     items: { default() { return [10, 25, 100 ] } },
   },
   computed: {

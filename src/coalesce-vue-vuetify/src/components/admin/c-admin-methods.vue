@@ -1,6 +1,5 @@
 
 <template>
-
   <v-expand-transition>
     <v-expansion-panels v-if="methods.length" class="c-methods">
       <v-toolbar
@@ -41,47 +40,48 @@
 
 <script lang="ts">
 
-import { Vue, Component, Watch, Prop } from 'vue-property-decorator'
-import { Model, ClassType, ViewModel, Property, Method, ModelType, ListViewModel } from 'coalesce-vue';
+import { defineComponent } from '@vue/runtime-core';
+import { Model, ViewModel, ModelType, ListViewModel } from 'coalesce-vue';
+import { PropType } from 'vue';
 import CAdminMethod from './c-admin-method.vue'
 
-@Component({
+export default defineComponent({
   name: 'c-admin-methods',
   components: {
     CAdminMethod
+  },
+
+  props: {
+    model: { required: true, type: Object as PropType<ViewModel<Model<ModelType>> | ListViewModel> },
+    autoReloadModel: { required: false, type: Boolean, default: false },
+  },
+
+  computed: {
+    viewModel(): ViewModel | ListViewModel {
+      if (this.model instanceof ViewModel) return this.model;
+      if (this.model instanceof ListViewModel) return this.model;
+      throw Error("c-method: prop `model` is required, and must be a ViewModel or ListViewModel.");
+    },
+
+    metadata() {
+      return this.viewModel.$metadata as ModelType;
+    },
+
+    isStatic() {
+      return this.viewModel instanceof ListViewModel
+    },
+
+    methods() {
+      if (this.viewModel instanceof ViewModel && !this.viewModel.$primaryKey) {
+        return []
+      }
+
+      return Object
+        .values(this.metadata.methods)
+        .filter(m => !!m.isStatic == this.isStatic)
+    }
   }
 })
-export default class CMethods extends Vue {
-  @Prop({required: true, type: Object})
-  public model!: ViewModel<Model<ModelType>> | ListViewModel;
-
-  @Prop({required: false, type: Boolean, default: false})
-  public autoReloadModel!: boolean;
-
-  get viewModel(): ViewModel | ListViewModel {
-    if (this.model instanceof ViewModel) return this.model;
-    if (this.model instanceof ListViewModel) return this.model;
-    throw Error("c-method: prop `model` is required, and must be a ViewModel or ListViewModel.");
-  }
-
-  get metadata() {
-    return this.viewModel.$metadata as ModelType;
-  }
-
-  get isStatic() {
-    return this.viewModel instanceof ListViewModel
-  }
-
-  get methods() {
-    if (this.viewModel instanceof ViewModel && !this.viewModel.$primaryKey) {
-      return []
-    }
-
-    return Object
-      .values(this.metadata.methods)
-      .filter(m => !!m.isStatic == this.isStatic)
-  }
-}
 
 </script>
 

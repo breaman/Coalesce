@@ -24,7 +24,7 @@
       "dom.iterable",
       "scripthost"
     ],
-    "types": ["node", "vuetify"]
+    "types": ["node", "vue-router"]
   },
   "include": [
     "src/**/*.ts",

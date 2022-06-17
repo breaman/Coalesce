@@ -50,39 +50,11 @@ const sharedPlugins = (exclude) => [
 
 const external = [
   ...Object.keys(pkg.dependencies),
-  ...Object.keys(pkg.peerDependencies),
-  "vuetify/lib"
+  ...Object.keys(pkg.peerDependencies)
 ];
 
 export default [
   {
-    // Non-treeshaking build, for use with `import Vuetify from 'vuetify'`.
-    // Referenced vuetify components will be referenced by name, expecting global registrations.
-    input: "src/index.dist.ts",
-    plugins: [
-      ...sharedPlugins(["src/index.ts", "src/build.ts"])
-    ],
-    external,
-
-    output: [
-      {
-        sourcemap: true,
-        file: "dist/cjs/index.js",
-        format: "cjs"
-      },
-      {
-        sourcemap: true,
-        file: "dist/index.js",
-        format: "esm"
-      }
-    ]
-  },
-  {
-    // Treeshaking build, for use with `import Vuetify from 'vuetify/lib'`.
-    // Referenced vuetify components will be imported from 'vuetify/lib'.
-
-    // Also builds `build.ts`, a standalone script for use in build configs like vite.
-    
     input: ["src/index.ts", "src/build.ts"],
     plugins: [
       ...sharedPlugins(["src/index.dist.ts"]),

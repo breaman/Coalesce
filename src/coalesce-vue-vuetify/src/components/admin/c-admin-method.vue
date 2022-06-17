@@ -132,11 +132,10 @@
 
 
 <script lang="ts">
-
-import { Vue, Component, Watch, Prop } from 'vue-property-decorator'
-import MetadataComponent, { getValueMeta } from '../c-metadata-component'
+import MetadataComponent, { getValueMeta, useMetadataProps } from '../c-metadata-component'
 import {  ViewModel,  ListViewModel, DisplayOptions, AnyArgCaller, ItemApiState } from 'coalesce-vue';
 import CInput from '../input/c-input'
+import { defineComponent } from '@vue/runtime-core';
 
 const resultDisplayOptions = <DisplayOptions>{
   collection: {
@@ -144,81 +143,96 @@ const resultDisplayOptions = <DisplayOptions>{
     enumeratedItemsSeparator: "\n"
   }
 }
-@Component({
+
+export default defineComponent({
   name: 'c-method',
   components: {
     CInput
-  }
-})
-export default class CAdminMethod extends MetadataComponent {
-  resultDisplayOptions = resultDisplayOptions;
-  
-  @Prop({required: false, type: Boolean, default: false})
-  public autoReloadModel!: boolean;
+  },
 
-  get methodMeta() {
-    const meta = getValueMeta(this.for, this.modelMeta);
-    if (meta && "params" in meta) {
-      return meta;
+  props: {
+    autoReloadModel: {required: false, type: Boolean, default: false}
+  },
+
+  setup() {
+    return { ...useMetadataProps() }
+  },
+
+  data() {
+    return {
+      resultDisplayOptions,
+      fileDownloadKind: "preview",
     }
-    throw Error("`c-method` requires metadata for a method.")
-  }
+  },
 
-  get filteredParams() {
-    return Object
-      .values(this.methodMeta.params)
-      .filter(p => !p.source)
-  }
-
-  get caller(): AnyArgCaller {
-    const caller = (this.viewModel as any)[this.methodMeta.name];
-    if (!caller) throw Error(`Method '${this.methodMeta.name}' doesn't exist on provided model.`);
-    return caller;
-  }
-
-  get viewModel(): ViewModel | ListViewModel {
-    if (this.model instanceof ViewModel) return this.model;
-    if (this.model instanceof ListViewModel) return this.model;
-    throw Error("c-method: prop `model` is required, and must be a ViewModel or ListViewModel.");
-  }
-
-  fileDownloadKind = "preview";
-
-  async invoke() {
-    this.fileDownloadKind = "preview";
-    await this.caller.invokeWithArgs()
-    if (this.autoReloadModel) {
-      await this.viewModel.$load();
-    }
-  }
-
-  async invokeAndDownload() {
-    this.fileDownloadKind = "download";
-    await this.caller.invokeWithArgs()
+  computed: {
+    methodMeta() {
+      const meta = getValueMeta(this.for, this.modelMeta);
+      if (meta && "params" in meta) {
+        return meta;
+      }
+      throw Error("`c-method` requires metadata for a method.")
+    },
     
-    if (this.autoReloadModel) {
-      // Don't await. Just do this in the background while we setup the file download.
-      this.viewModel.$load();
+    filteredParams() {
+      return Object
+        .values(this.methodMeta.params)
+        .filter(p => !p.source)
+    },
+    
+    caller(): AnyArgCaller {
+      const caller = (this.viewModel as any)[this.methodMeta.name];
+      if (!caller) throw Error(`Method '${this.methodMeta.name}' doesn't exist on provided model.`);
+      return caller;
+    },
+    
+    viewModel(): ViewModel | ListViewModel {
+      if (this.model instanceof ViewModel) return this.model;
+      if (this.model instanceof ListViewModel) return this.model;
+      throw Error("c-method: prop `model` is required, and must be a ViewModel or ListViewModel.");
     }
 
-    this.downloadFileResult();
+  },
+
+  methods: {
+      
+    async invoke() {
+      this.fileDownloadKind = "preview";
+      await this.caller.invokeWithArgs()
+      if (this.autoReloadModel) {
+        await this.viewModel.$load();
+      }
+    },
+
+    async invokeAndDownload() {
+      this.fileDownloadKind = "download";
+      await this.caller.invokeWithArgs()
+      
+      if (this.autoReloadModel) {
+        // Don't await. Just do this in the background while we setup the file download.
+        this.viewModel.$load();
+      }
+
+      this.downloadFileResult();
+    },
+
+      downloadFileResult() {
+        const caller = this.caller as ItemApiState<any, File>;
+        const file = caller.result;
+        if (!(file instanceof File)) return;
+
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.href = caller.getResultObjectUrl(this)!;
+        a.download = file.name;
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+        }, 1)
+      }
   }
 
-  downloadFileResult() {
-    const caller = this.caller as ItemApiState<any, File>;
-    const file = caller.result;
-    if (!(file instanceof File)) return;
-
-    const a = document.createElement('a');
-    document.body.appendChild(a);
-    a.href = caller.getResultObjectUrl(this)!;
-    a.download = file.name;
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-    }, 1)
-  }
-}
+})
 
 </script>
 

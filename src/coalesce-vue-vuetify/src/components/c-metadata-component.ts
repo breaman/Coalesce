@@ -1,5 +1,4 @@
 
-import { Vue, Component, Prop } from 'vue-property-decorator';
 import { 
   Model, 
   Property, 
@@ -16,9 +15,14 @@ import {
   Domain, 
   AnyArgCaller
 } from 'coalesce-vue';
+import { Base } from 'vue-facing-decorator';
+import { computed, PropType, toRefs, useAttrs } from 'vue';
+import { useMetadata } from '..';
+
+export type ForSpec = undefined | null | string | Property | Value | Method;
 
 export function getValueMeta(
-  forVal: undefined | null | string | Property | Value | Method, 
+  forVal: ForSpec, 
   modelMeta: ObjectType | ModelType | DataSourceType | Method | null | undefined,
   $metadata?: Domain
 ): Property | Value | Method | null {
@@ -57,6 +61,8 @@ export function getValueMeta(
       tailKind = "type"
     }
   }
+
+  $metadata ??= useMetadata()
 
   for (let i = 0; i < forParts.length; i++) {
     const forPart = forParts[i];
@@ -173,16 +179,12 @@ export function getValueMeta(
 
 export function buildVuetifyAttrs(
   valueMeta: Property | Value | null, 
-  model: Model<ClassType> | AnyArgCaller | null,
-  attrs?: {},
-  injections?: {[s: string]: any},
+  model: Model<ClassType> | AnyArgCaller | null | undefined,
+  data?: {}
 ): {[s: string]: any} {
 
   if (!valueMeta) {
-    return {
-      ...injections?.['c-input-props'],
-      ...attrs,
-    }
+    return { }
   }
 
   const modelMeta = model ? model.$metadata : null;
@@ -195,7 +197,7 @@ export function buildVuetifyAttrs(
     // Normalize multi-word name based on what might exist in `attrs`
     // (so that it can be overridden using either casing style).
     // Use kebab style if the camel version isn't detected.
-    [attrs && 'persistentHint' in attrs 
+    [data && 'persistentHint' in data 
       ? 'persistentHint' 
       : 'persistent-hint']: !!valueMeta?.description,
 
@@ -204,48 +206,32 @@ export function buildVuetifyAttrs(
       : 'rules' in valueMeta && valueMeta.rules
         ? Object.values(valueMeta.rules)
         : undefined,
-
-    ...injections?.['c-input-props'],
-    ...attrs,
   }
 }
 
-@Component({
-  inject: {
-    'c-input-props': { default: {} }
-  },
-})
-export default class extends Vue {
+export function useMetadataProps() {
+  const metadata = useMetadata();
 
-  // NOTE: these props are intentionally don't have types specified. 
-  // Vue's type checking is slow because of some nonsense about 
-  // compatibility with iframes - it tostrings the ctor function and then 
-  // runs a regex against the string to determine the type.
+  const props = defineProps({
+    for: { required: false, type: [String, Object] as PropType<ForSpec>, default: null },
+    model: { type: Object as PropType<Model<ClassType>>, default: null },
+  })
 
-  /**
-   * A 'parent' object that owns the property which we are binding.
-   * The corresponding property is specified via prop `for`,
-   * and should be accessed via `valueMeta`
-   */
-  @Prop({required: false, default: null, /*type: Object*/})
-  public model!: Model<ClassType> | null;
+  const modelMeta = computed(() => {
+    return props.model ? props.model.$metadata : null;
+  })
 
-  @Prop({required: false, default: null, /*type: [String, Object]*/})
-  public for?: string | Property | Value | null;
-
-  get inputBindAttrs() {
-    return buildVuetifyAttrs(this.valueMeta, this.model, this.$attrs, this);
-  }
-
-  get modelMeta(): ClassType | null {
-    return this.model ? this.model.$metadata : null;
-  }
-
-  get valueMeta(): Property | Value | null {
-    const valueMeta = getValueMeta(this.for, this.modelMeta, this.$coalesce.metadata);
+  const valueMeta = computed((() => {
+    const valueMeta = getValueMeta(props.for, modelMeta.value, metadata);
     if (valueMeta && "role" in valueMeta) {
       return valueMeta;
     }
     return null;
-  }
+  }) as (() => Property | Value | null))
+
+  const inputBindAttrs = computed(() =>
+    buildVuetifyAttrs(valueMeta.value, props.model, useAttrs())
+  )
+
+  return { ...toRefs(props), modelMeta, valueMeta, inputBindAttrs }
 }

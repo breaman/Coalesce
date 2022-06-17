@@ -14,73 +14,75 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Watch, Prop } from 'vue-property-decorator'
-import { ViewModel, ModelType, BehaviorFlags, ListParameters, mapQueryToParams, mapToModel, mapValueToModel, bindKeyToRouteOnCreate, modelDisplay } from 'coalesce-vue';
+import { ViewModel, ModelType, ListParameters, mapQueryToParams, mapValueToModel, bindKeyToRouteOnCreate, modelDisplay } from 'coalesce-vue';
 
 import CAdminMethods from './c-admin-methods.vue';
 import CAdminEditor from './c-admin-editor.vue';
+import { defineComponent } from '@vue/runtime-core';
+import { useRoute } from 'vue-router';
 
-@Component({
+export default defineComponent({
   name: 'c-admin-table-page',
   components: {
     CAdminEditor, CAdminMethods
-  }
-})
-export default class extends Vue {
-  /** Support for common convention of exposing 'pageTitle' from router-view hosted components. */
-  get pageTitle() {
-    if (this.isCreate) {
-      return "Create - " + this.metadata.displayName;
-    }
+  },
 
-    let display = this.viewModel ? modelDisplay(this.viewModel) : null;
-    if (!display) {
-      return this.metadata.displayName;
-    }
+  props: {
+    type: {required: true, type: String},
+    id: {required: false, type: [String, Number]},
+  },
 
-    const maxLen = 30;
-    if (display.length <= maxLen) {
-      return display + " - " + this.metadata.displayName;
-    }
-    return display.slice(0, maxLen) + '... - ' + this.metadata.displayName;
-  }
-
-  @Prop({required: true, type: String})
-  public type!: string;
-
-  @Prop({required: false, type: [String, Number]})
-  public id!: string | number;
-
-  viewModel: ViewModel<any,any> = null as any;
-
-  get metadata(): ModelType {
-    if (this.viewModel) {
-      return this.viewModel.$metadata
-    }
-    throw `No metadata available.`
-  }
-  
-  get isCreate() {
-    return !this.viewModel!.$primaryKey;
-  }
-
-  get hasInstanceMethods() {
-    return !this.isCreate && this.metadata && Object.values(this.metadata.methods).some(m => !m.isStatic)
-  }
-
-  async created() {
+  data() {
     if (!ViewModel.typeLookup![this.type]) {
       // TODO: Bake a `getOrThrow` into `typeLookup`.
       throw Error(`No model named ${this.type} is registered to ViewModel.typeLookup`)
     }
-    
-    this.viewModel = new ViewModel.typeLookup![this.type];
 
+    return {
+      viewModel: new ViewModel.typeLookup![this.type]
+    }
+  },
+
+  computed: {
+    /** Support for common convention of exposing 'pageTitle' from router-view hosted components. */
+    pageTitle() {
+      if (this.isCreate) {
+        return "Create - " + this.metadata.displayName;
+      }
+
+      let display = this.viewModel ? modelDisplay(this.viewModel) : null;
+      if (!display) {
+        return this.metadata.displayName;
+      }
+
+      const maxLen = 30;
+      if (display.length <= maxLen) {
+        return display + " - " + this.metadata.displayName;
+      }
+      return display.slice(0, maxLen) + '... - ' + this.metadata.displayName;
+    },
+
+    metadata(): ModelType {
+      if (this.viewModel) {
+        return this.viewModel.$metadata
+      }
+      throw `No metadata available.`
+    },
+    
+    isCreate() {
+      return !this.viewModel!.$primaryKey;
+    },
+    
+    hasInstanceMethods() {
+      return !this.isCreate && this.metadata && Object.values(this.metadata.methods).some(m => !m.isStatic)
+    }
+  },
+
+  async created() {
     if (this.id) {
       await this.viewModel.$load(this.id);
     } else {
-
-      const params = mapQueryToParams(this.$route.query, ListParameters, this.metadata);
+      const params = mapQueryToParams(useRoute().query, ListParameters, this.metadata);
       if (params.filter) {
         for (const propName in this.metadata.props) {
           const prop = this.metadata.props[propName]
@@ -103,7 +105,7 @@ export default class extends Vue {
     
   }
 
-}
+})
 </script>
 
 

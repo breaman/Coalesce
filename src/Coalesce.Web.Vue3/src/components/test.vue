@@ -5,6 +5,11 @@
     </video>
     <img v-if="caseVm.caseKey" :src="caseVm.downloadImage.url" controls style="max-width: 100%" />
  
+
+    <c-input :model="caseVm" for="title"></c-input>
+    <c-display :model="caseVm" for="title"/>
+
+    <v-text-field v-model="caseVm.title" label="vuetify direct"></v-text-field>
     <!--<video v-if="caseVm.caseKey" :src="caseVm.downloadImage.getResultObjectUrl(this)" controls style="max-width: 100%">
     </video>--> 
 
@@ -91,7 +96,8 @@
     async created() {
       
       await this.caseVm.$load(16);
-      //await this.caseVm.downloadImage()
+      //await this.caseVm.downloadImage(),
+      this.caseVm.$startAutoSave(this);
       await this.company.$load(1);
 
       await this.person.$load(1)

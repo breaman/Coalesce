@@ -6,7 +6,7 @@ export function CoalesceVuetifyResolver() {
     type: "component",
     resolve: (name: string) => {
       if (name.match(/^C[A-Z]/))
-        return { name, from: "coalesce-vue-vuetify/lib" };
+        return { name, from: "coalesce-vue-vuetify" };
     },
   } as const;
 }

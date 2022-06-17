@@ -5,8 +5,9 @@ import { defineConfig } from "vite";
 import createVuePlugin from "@vitejs/plugin-vue";
 import createCheckerPlugin from "vite-plugin-checker";
 import createVueComponentImporterPlugin from "unplugin-vue-components/vite";
-import { VuetifyResolver } from "unplugin-vue-components/resolvers";
+import { Vuetify3Resolver } from "unplugin-vue-components/resolvers";
 
+import { CoalesceVuetifyResolver } from "../coalesce-vue-vuetify/src/build"
 import { createAspNetCoreHmrPlugin } from "../coalesce-vue/src/build";
 
 import { sassPlugin } from "esbuild-sass-plugin";
@@ -39,13 +40,13 @@ export default defineConfig(async ({ command, mode }) => {
     plugins: [
       createVuePlugin(),
 
-      vuetify(),
+      // vuetify(),
 
       // Transforms usages of Vuetify and Coalesce components into treeshakable imports
-      // createVueComponentImporterPlugin({
-      //   dts: false,
-      //   resolvers: [VuetifyResolver(), CoalesceVuetifyResolver()],
-      // }),
+      createVueComponentImporterPlugin({
+        dts: false,
+        resolvers: [Vuetify3Resolver(), CoalesceVuetifyResolver()],
+      }),
 
       // Integrations with UseViteDevelopmentServer from IntelliTect.Coalesce.Vue
       createAspNetCoreHmrPlugin(),
@@ -73,15 +74,14 @@ export default defineConfig(async ({ command, mode }) => {
         { find: "@", replacement: path.resolve(__dirname, "src") },
         { find: "coalesce-vue/lib", replacement: path.resolve(__dirname, "../coalesce-vue/src") },
         { find: "coalesce-vue", replacement: path.resolve(__dirname, "../coalesce-vue/src") },
-        { find: "coalesce-vue-vuetify/lib", replacement: path.resolve(__dirname, "../coalesce-vue-vuetify/src/index.ts") },
-        { find: "coalesce-vue-vuetify", replacement: path.resolve(__dirname, "../coalesce-vue-vuetify/src/index.dist.ts") },
+        { find: "coalesce-vue-vuetify", replacement: path.resolve(__dirname, "../coalesce-vue-vuetify/src/index.ts") },
         { find: "vue", replacement: path.resolve(__dirname, "node_modules/vue") },
         { find: "vue-router", replacement: path.resolve(__dirname, "node_modules/vue-router") },
       ],
     },
     server: {
       fs: {
-        allow: ["../coalesce-vue", "."]
+        allow: ["../coalesce-vue", "../coalesce-vue-vuetify", "."]
       }
     },
 
@@ -109,17 +109,17 @@ export default defineConfig(async ({ command, mode }) => {
       },
     },
 
-    test: <VitestInlineConfig>{
-      globals: true,
-      environment: "jsdom",
-      setupFiles: ["tests/setupTests.ts"],
-      coverage: {
-        exclude: ["**/*.g.ts", "test{,s}/**"],
-      },
-      deps: {
-        inline: ["vuetify/lib"],
-      },
-    },
+    // test: <VitestInlineConfig>{
+    //   globals: true,
+    //   environment: "jsdom",
+    //   setupFiles: ["tests/setupTests.ts"],
+    //   coverage: {
+    //     exclude: ["**/*.g.ts", "test{,s}/**"],
+    //   },
+    //   deps: {
+    //     inline: ["vuetify"],
+    //   },
+    // },
   };
 });
 

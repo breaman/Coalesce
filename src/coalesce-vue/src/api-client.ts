@@ -427,7 +427,7 @@ type InvokerType<
   TResult
 > = TCall<TArgs, InvokerReturnType<T, TResult>>;
 
-type ApiStateType<
+export type ApiStateType<
   T extends TransportTypeSpecifier<any>,
   TArgs extends any[],
   TResult
@@ -437,7 +437,7 @@ type ApiStateType<
   ? ListApiState<TArgs, TResult>
   : never) & InvokerType<T, TArgs, TResult>;
 
-type ApiStateTypeWithArgs<
+export type ApiStateTypeWithArgs<
   T extends TransportTypeSpecifier<any>,
   TArgs extends any[],
   TArgsObj extends {},

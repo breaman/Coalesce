@@ -77,15 +77,12 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Watch, Prop } from "vue-property-decorator";
-import MetadataComponent from "../c-metadata-component";
+import { PropType, defineComponent } from "vue";
+import { useRouter } from "vue-router";
+import { useMetadataProps } from "../c-metadata-component";
 import {
-  Model,
-  ClassType,
   ListViewModel,
-  Property,
   ModelType,
-  ViewModel,
   BehaviorFlags,
   mapParamsToDto
 } from "coalesce-vue";
@@ -95,61 +92,67 @@ import CListPage from "../input/c-list-page.vue";
 import CListPageSize from "../input/c-list-page-size.vue";
 import CListFilters from "../input/c-list-filters.vue";
 
-@Component({
+export default defineComponent({
   name: "c-admin-table-toolbar",
-  components: { CListRangeDisplay, CListPage, CListPageSize, CListFilters }
-})
-export default class extends MetadataComponent {
-  @Prop({ required: true, type: Object })
-  public list!: ListViewModel<any, any>;
+  components: { CListRangeDisplay, CListPage, CListPageSize, CListFilters },
 
-  @Prop({ type: String, default: "primary" })
-  public color!: string;
+  setup() {
+    return {
+      ...useMetadataProps(),
+      router: useRouter()
+    }
+  },
 
-  @Prop({ required: false, type: Boolean, default: null })
-  public editable?: boolean | null;
+  props: {
+    list: { required: true, type: Object as PropType<ListViewModel> },
+    color: { default: "primary", type: String },
+    editable: { default: null, required: false, type: Boolean },
+  },
 
-  get metadata(): ModelType {
-    return this.list.$metadata;
-  }
+  computed: {
+    metadata(): ModelType {
+      return this.list.$metadata;
+    },
 
-  get canCreate() {
-    return (
-      this.metadata && (this.metadata.behaviorFlags & BehaviorFlags.Create) != 0
-    );
-  }
-
-  get createRoute() {
-    // Resolve to an href to allow overriding of admin routes in userspace.
-    // If we just gave a named raw location, it would always use the coalesce admin route
-    // instead of the user-overridden one (that the user overrides by declaring another
-    // route with the same path).
-    return this.$router.resolve({
-      name: "coalesce-admin-item",
-      params: {
-        type: this.metadata.name
-      },
-      query: Object.fromEntries(
-        Object.entries(mapParamsToDto(this.list.$params) || {}).filter(entry =>
-          entry[0].startsWith("filter.")
+    createRoute() {
+      // Resolve to an href to allow overriding of admin routes in userspace.
+      // If we just gave a named raw location, it would always use the coalesce admin route
+      // instead of the user-overridden one (that the user overrides by declaring another
+      // route with the same path).
+      this.router
+      return this.router.resolve({
+        name: "coalesce-admin-item",
+        params: {
+          type: this.metadata.name
+        },
+        query: Object.fromEntries(
+          Object.entries(mapParamsToDto(this.list.$params) || {}).filter(entry =>
+            entry[0].startsWith("filter.")
+          )
         )
-      )
-    }).resolved.fullPath;
-  }
+      }).fullPath;
+    },
 
-  /** Calculated width for the "Page" text input, such that it fits the max page number. */
-  get pageInputWidth() {
-    const totalCount = this.list.$load.totalCount || 1000;
-    return (
-      (
-        Math.max(this.list.$page, totalCount).toString() +
-        " of " +
-        totalCount +
-        "xx"
-      ).length.toString() + "ch"
-    );
+    canCreate() {
+      return (
+        this.metadata && (this.metadata.behaviorFlags & BehaviorFlags.Create) != 0
+      );
+    },
+
+    /** Calculated width for the "Page" text input, such that it fits the max page number. */
+    pageInputWidth() {
+      const totalCount = this.list.$load.totalCount || 1000;
+      return (
+        (
+          Math.max(this.list.$page, totalCount).toString() +
+          " of " +
+          totalCount +
+          "xx"
+        ).length.toString() + "ch"
+      );
+    }
   }
-}
+})
 </script>
 
 <style lang="scss">

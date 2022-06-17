@@ -1,28 +1,28 @@
-import Vue, { PropOptions } from "vue";
-import { getValueMeta } from "../c-metadata-component";
+import Vue, { defineComponent, Prop, h as _c, PropType } from "vue";
+import { ForSpec, getValueMeta } from "../c-metadata-component";
 import { propDisplay, valueDisplay, Property, DisplayOptions, Model, ClassType, DateValue } from "coalesce-vue";
 
 const standaloneDateValueMeta = <DateValue>{ name: '', displayName: '', type: 'date', dateKind: 'datetime' };
 
-export default Vue.extend({
+export default defineComponent({
   name: "c-display",
-  functional: true,
+  
   props: {
     element: { type: String, default: "span" },
-    for: <PropOptions<any>>{ required: false },
-    model: <PropOptions<Model<ClassType>>>{ type: Object },
+    for: { required: false, type: [String, Object] as PropType<ForSpec> },
+    model: { type: Object as PropType<Model<ClassType>> },
 
-    options: <PropOptions<DisplayOptions>>{ required: false, type: Object, default: null },
+    options: { required: false, type: Object as PropType<DisplayOptions>, default: null },
     // Shorthand for { options: format }
-    format: { required: false },
+    format: { required: false, type: [String, Object] as PropType<DisplayOptions["format"]> },
 
-    value: <PropOptions<any>>{ required: false }
+    value: <Prop<any>>{ required: false }
   },
 
-	render(_c, ctx) {
+	render() {
     // NOTE: CreateElement fn must be named `_c` for unplugin-vue-components to work correctly.
 
-    const props = ctx.props;
+    const props = this.$props;
     const { model, value: valueProp } = props;
 
     if (model == null && valueProp == null) {
@@ -33,7 +33,7 @@ export default Vue.extend({
     }
 
     const modelMeta = model ? model.$metadata : null;
-    let meta = getValueMeta(props.for, modelMeta, ctx.parent.$coalesce.metadata);
+    let meta = getValueMeta(props.for, modelMeta, this.$coalesce.metadata);
     if (!meta && modelMeta && "displayProp" in modelMeta) {
       meta = modelMeta.displayProp || null;
     }
@@ -51,7 +51,7 @@ export default Vue.extend({
       throw Error("Cannot display a method");
     }
 
-    let options: null | DisplayOptions = props.options;
+    let options = props.options;
     if (props.format) {
       options = {...options, format: props.format as any};
     }
@@ -68,6 +68,6 @@ export default Vue.extend({
       }
     }
 
-    return _c(props.element, ctx.data, valueString || ctx.children);
+    return _c(props.element, this.$attrs, valueString || this.$slots);
   }
 });
