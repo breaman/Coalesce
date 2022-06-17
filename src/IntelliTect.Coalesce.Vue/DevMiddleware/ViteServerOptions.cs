@@ -10,7 +10,7 @@ namespace IntelliTect.Coalesce
     public class ViteServerOptions
     {
         /// <summary>
-        /// Whether the vite server is running with HTTPS. 
+        /// Whether the vite server is running with HTTPS.  
         /// Vite.config.js must be appropriately configured to match.
         /// </summary>
         public bool UseHttps { get; set; } = true;
@@ -28,14 +28,23 @@ namespace IntelliTect.Coalesce
         public string NpmScriptName { get; set; } = "dev";
 
         /// <summary>
-        /// Text to watch for in the stdout of the vite server that signifies
-        /// that it is ready to start serving requests.
+        /// The port to run the vite dev server on. If not set, a random port will be chosen.
+        /// It is strongly recommended to choose a specific port so that features like auto-reconnect work correctly.
         /// </summary>
-        public string OutputOnReady { get; set; } = "dev server running at";
+        public int? DevServerPort { get; set; }
 
         /// <summary>
-        /// The path of the client app, relative to the .NET process' working directory.
+        /// Regex to watch for in the stdout of the vite server that signifies
+        /// that it is ready to start serving requests.
+        /// A capture group can specify the actual port that the server chose to listen on.
         /// </summary>
-        public string ClientAppPath { get; set; } = ".";
+        public string OutputOnReady { get; set; } = "//localhost:([0-9]+)/";
+
+        /// <summary>
+        /// If true, requests with Accept: text/html will be delayed until the dev server
+        /// has started up. Startup includes writing index.html to disk.
+        /// </summary>
+        public bool WaitForReady { get; set; } = true;
+
     }
 }

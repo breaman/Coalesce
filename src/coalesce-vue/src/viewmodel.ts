@@ -1,15 +1,13 @@
-import Vue, { ComponentPublicInstance, onBeforeUnmount, reactive, toRaw, ref, markRaw, type ReactiveFlags } from "vue";
+import type { ComponentPublicInstance, onBeforeUnmount, reactive, toRaw, ref, markRaw, type ReactiveFlags } from "vue";
 
 
 import {
-  ModelType,
-  CollectionProperty,
-  PropertyOrName,
   resolvePropMeta,
+} from "./metadata.js";
+import type {
+  ModelType,
+  PropertyOrName,
   PropNames,
-  Method,
-  ClassType,
-  CollectionValue,
   ModelCollectionNavigationProperty,
   ModelCollectionValue,
   Service,
@@ -22,13 +20,13 @@ import {
   ServiceApiClient
 } from "./api-client.js";
 import {
-  Model,
+  type Model,
   modelDisplay,
   propDisplay,
   convertToModel,
   mapToModel
 } from "./model.js";
-import { Indexable, ReactiveFlags_SKIP } from "./util.js";
+import { type Indexable, ReactiveFlags_SKIP } from "./util.js";
 import { debounce } from "lodash-es";
 import type { Cancelable, DebounceSettings } from "lodash";
 

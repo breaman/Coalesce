@@ -24,14 +24,14 @@ namespace IntelliTect.Coalesce.Vue.DevMiddleware
     {
         private const string LogCategoryName = "IntelliTect.Coalesce.Vue";
 
-        public static void Attach(
+        public static Task<int> Attach(
             ISpaBuilder spaBuilder,
             ViteServerOptions options
         )
         {
             var pkgManagerCommand = spaBuilder.Options.PackageManagerCommand;
             var sourcePath = spaBuilder.Options.SourcePath;
-            var devServerPort = spaBuilder.Options.DevServerPort;
+            var devServerPort = options.DevServerPort;
             if (string.IsNullOrEmpty(sourcePath))
             {
                 throw new ArgumentException("Property 'SourcePath' cannot be null or empty", nameof(spaBuilder));
@@ -63,9 +63,11 @@ namespace IntelliTect.Coalesce.Vue.DevMiddleware
 
                 return new UriBuilder(options.UseHttps ? "https" : "http", "localhost", port).Uri;
             });
+
+            return portTask;
         }
 
-        private static ILogger GetOrCreateLogger(IApplicationBuilder appBuilder)
+        internal static ILogger GetOrCreateLogger(IApplicationBuilder appBuilder)
         {
             // If the DI system gives us a logger, use it. Otherwise, set up a default one
             var loggerFactory = appBuilder.ApplicationServices.GetService<ILoggerFactory>();
@@ -90,11 +92,11 @@ namespace IntelliTect.Coalesce.Vue.DevMiddleware
             ViteServerOptions options,
             string sourcePath,
             string pkgManagerCommand,
-            int portNumber,
+            int? portNumber,
             ILogger logger,
             CancellationToken applicationStoppingToken)
         {
-            if (portNumber == default(int))
+            if (!portNumber.HasValue || portNumber == 0)
             {
                 portNumber = FindAvailablePort();
             }
@@ -107,26 +109,35 @@ namespace IntelliTect.Coalesce.Vue.DevMiddleware
                 null,
                 pkgManagerCommand,
                 applicationStoppingToken);
-
             scriptRunner.AttachToLogger(logger);
 
-            using (var stdErrReader = new EventedStreamStringReader(scriptRunner.StdErr))
+            using var stdErrReader = new EventedStreamStringReader(scriptRunner.StdErr);
+            try
             {
-                try
+                var match = await scriptRunner.StdOut.WaitForMatch(
+                    new Regex(options.OutputOnReady, RegexOptions.None, TimeSpan.FromSeconds(2)));
+                if (match.Groups.Count > 0)
                 {
-                    await scriptRunner.StdOut.WaitForMatch(
-                        new Regex(options.OutputOnReady, RegexOptions.None, TimeSpan.FromSeconds(5)));
-                }
-                catch (EndOfStreamException ex)
-                {
-                    throw new InvalidOperationException(
-                        $"The {pkgManagerCommand} script '{options.NpmScriptName}' exited without indicating that the " +
-                        "server was listening for requests. The error output was: " +
-                        $"{stdErrReader.ReadAsString()}", ex);
+                    var capture = match.Groups[1].Value;
+                    if (!int.TryParse(capture, out int port))
+                    {
+                        throw new InvalidOperationException(
+                            $"The OutputOnReady regex {options.OutputOnReady} produced a capture group, " +
+                            $"but it is expected to yield an integer representing a port number. " +
+                            $"The value it actually produced was {capture}");
+                    }
+                    return port;
                 }
             }
+            catch (EndOfStreamException ex)
+            {
+                throw new InvalidOperationException(
+                    $"The {pkgManagerCommand} script '{options.NpmScriptName}' exited without indicating that the " +
+                    "server was listening for requests. The error output was: " +
+                    $"{stdErrReader.ReadAsString()}", ex);
+            }
 
-            return portNumber;
+            return portNumber.Value;
         }
     }
 
