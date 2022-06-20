@@ -4,14 +4,14 @@
     :close-on-content-click="false"
     offset-y
   >
-    <template #activator="{on}">
+    <template #activator="{props}">
       <v-btn
         class="c-list-filters"
         text
-        v-on="on"
+        v-bind="props"
       >
         <v-badge :value="activeCount" left :content="activeCount" color="accent">
-          <v-icon :left="$vuetify.breakpoint.mdAndUp">fa fa-filter</v-icon>
+          <v-icon :start="$vuetify.display.mdAndUp">fa:far fa-filter</v-icon>
         </v-badge>
         <span class="hidden-sm-and-down">Filters</span>
       </v-btn>
@@ -48,7 +48,7 @@
                 @click="removeFilter(filter)"
                 title="Remove Filter"
               >
-                <i class="fa fa-times"></i>
+                <i class="fa:far fa-times"></i>
               </v-btn>
               <v-btn 
                 x-small @click="setFilter(filter, null)"
@@ -60,7 +60,7 @@
                 x-small @click="setFilter(filter, '')"
                 title="Set custom filter value"
               >
-                <i class="fa fa-ellipsis-h"></i>
+                <i class="fa:far fa-ellipsis-h"></i>
               </v-btn>
             </v-btn-toggle>
           </v-col>
@@ -86,7 +86,7 @@
               :value="parseValueArray(filter.value)"
               @input="value => setFilter(filter, value)"
               :items="filter.propMeta.typeDef.values"
-              item-text="displayName"
+              item-title="displayName"
               item-value="value"
               :label="filter.displayName"
               clearable hide-details multiple
@@ -116,7 +116,7 @@
               :value="filter.value === 'null' ? null : filter.value"
               @input="value => setFilter(filter, value)"
               :label="filter.displayName"
-              outlined dense clearable hide-details
+              density="compact" variant="outlined" clearable hide-details
             />
             
           </v-col>
@@ -165,7 +165,7 @@
 
 <script lang="ts">
 import type { ListViewModel, Property } from 'coalesce-vue';
-import Vue, { PropOptions } from 'vue';
+import { defineComponent, PropType, reactive } from 'vue';
 
 interface FilterInfo {
   key: string,
@@ -179,10 +179,10 @@ interface FilterInfo {
 
 const filterTypes = ["string", "number", "boolean", "enum", "date"];
 
-export default Vue.extend({
+export default defineComponent({
   name: 'c-list-filters',
   props: { 
-    list: <PropOptions<ListViewModel>>{ required: true },
+    list: { required: true, type: Object as PropType<ListViewModel> },
   },
   methods: {
     removeFilter(filterInfo: FilterInfo) {
@@ -194,9 +194,8 @@ export default Vue.extend({
       if (Array.isArray(value)) {
         value = value.join(',')
       }
-      const filter = this.list.$params.filter ?? {}
-      this.$set(filter, filterInfo.key, value)
-      this.list.$params.filter = filter;
+      const filter = reactive(this.list.$params.filter ??= {})
+      filter[filterInfo.key] = value;
     },
     addFilter(filterInfo: FilterInfo) {
       if (filterInfo.propMeta?.type == "boolean") {

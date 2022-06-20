@@ -1,12 +1,11 @@
 <template>
   <v-autocomplete
     class="c-select"
-    :value="internalModelValue"
-    @input="onInput"
-    v-on="{...$listeners}"
+    :model-value="internalModelValue"
+    @update:modelValue="onInput"
     :loading="loading"
     :items="listItems"
-    :search-input.sync="search"
+    v-model:search="search"
     :item-value="modelObjectMeta.keyProp.name"
     :return-object="true"
     :clearable="effectiveClearable"
@@ -18,48 +17,49 @@
     v-bind="inputBindAttrs"
     ref="vAutocomplete"
   >
-    <template slot="no-data">
+    <template #no-data>
       <!-- TODO: i18n -->
       <div class="grey--text px-4 my-3" v-if="!createItemLabel">No results found.</div>
       <!-- Must include an empty element so vuetify doesn't fall back to the slot's default -->
       <span v-else></span>
     </template>
-    <template slot="prepend-item" v-if="createItemLabel">
+    <template #prepend-item v-if="createItemLabel">
       <v-list-item @click="createItem">
         <v-list-item-avatar class="mr-1 my-0">
-          <v-icon color="success">fa fa-plus</v-icon>
+          <v-icon color="success">fa:far fa-plus</v-icon>
         </v-list-item-avatar>
-        <v-list-item-content>
+        <v-list-item-header>
           <v-list-item-title >
             <span class="grey--text">
               Create: 
             </span>
             {{createItemLabel}}
           </v-list-item-title>
-        </v-list-item-content>
+        </v-list-item-header>
       </v-list-item>
     </template>
-    <template slot="append-item">
+    <template #append-item>
       <!-- TODO: i18n -->
       <div class="grey--text px-4 my-3" v-if="listCaller.pageCount > 1">
         Max {{listCaller.pageSize}} items retrieved. Refine your search to view more.
       </div>
     </template>
-    <template #item="{ item, attrs, on }">
+    <template #item="{ item, props }">
       <!-- <c-display :model="item" /> -->
-      <v-list-item v-bind="attrs" v-on="on">
-        <v-list-item-content>
+      <v-list-item v-if="!item.raw" v-bind="props"> </v-list-item>
+      <v-list-item v-else v-bind="props">
+        <v-list-item-header>
           <v-list-item-title >
-            <slot name="item" :item="item">
-              <c-display :model="item" />
+            <slot name="item" :item="item.raw">
+              <c-display :model="item.raw" />
             </slot>
           </v-list-item-title>
-        </v-list-item-content>
+        </v-list-item-header>
       </v-list-item>
     </template>
-    <template #selection="{ item }">
-      <slot name="item" :item="item" >
-        <c-display :model="item" />
+    <template #selection="{ props, item }">
+      <slot name="item" :item="item.raw" >
+        <c-display :model="item.raw" v-bind="props" />
       </slot>
     </template>
 
@@ -68,7 +68,7 @@
 
 <script lang="ts">
 import CDisplay from '../display/c-display';
-import { useMetadataProps } from '../c-metadata-component'
+import { makeMetadataProps, useMetadataProps } from '../c-metadata-component'
 import { 
   ModelApiClient, ListApiState, ListResultPromise,
   Model, ModelType, ForeignKeyProperty, ModelReferenceNavigationProperty, ListParameters, 
@@ -87,12 +87,13 @@ export default defineComponent({
     CDisplay
   },
 
-  setup() { return { 
+  setup(props) { return { 
     vAutocomplete: ref<VAutocomplete>(), 
-    ...useMetadataProps() 
+    ...useMetadataProps(props) 
   }},
 
   props: {
+    ...makeMetadataProps(),
     clearable: {required: false, default: undefined, type: Boolean},
     value: <Prop<any>>{required: false},
     keyValue: <Prop<any>>{required: false},
@@ -457,9 +458,19 @@ export default defineComponent({
 
 
 <style lang="scss">
-  .c-select.v-input--is-focused input[type=text]:not(:first-child) {
-    padding-left: 10px;
-    color: rgba(0,0,0,.54) !important;
+  .c-select {
+    .v-field--focused input[type=text]:not(:first-child) {
+      padding-left: 5px;
+      padding-bottom: 2px;
+      color: rgba(0,0,0,.54) !important;
+      position: relative !important;
+    }
+
+    // Vuetify 3 will hide the current selection when the input is focused for some insane reason.
+    // don't do this.
+    &.v-autocomplete--single .v-field--focused .v-autocomplete__selection {
+      opacity: unset;
+    }
   }
 </style>
 

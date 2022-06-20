@@ -10,7 +10,7 @@ import { createApp } from 'vue';
 import { createVuetify } from 'vuetify'
 import { createRouter, createWebHistory } from 'vue-router';
 import { AxiosClient } from 'coalesce-vue'
-import { createCoalesceVuetify } from 'coalesce-vue-vuetify'
+import { createCoalesceVuetify, CAdminEditorPage, CAdminTablePage } from 'coalesce-vue-vuetify'
 
 import App from './App.vue';
 
@@ -27,6 +27,8 @@ const router = createRouter({
   routes: [
     { path: '/', component: () => import("@/components/HelloWorld.vue"), },
     { path: '/test', component: () => import("./components/test.vue"), },
+    { path: '/admin/:type', name: 'coalesce-admin-list', component: CAdminTablePage},
+    { path: '/admin/:type/item/:id?', name: 'coalesce-admin-item', component: CAdminEditorPage, props: true}
   ]
 });
 

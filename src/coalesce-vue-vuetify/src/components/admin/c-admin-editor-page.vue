@@ -22,7 +22,7 @@ import { defineComponent } from '@vue/runtime-core';
 import { useRoute } from 'vue-router';
 
 export default defineComponent({
-  name: 'c-admin-table-page',
+  name: 'c-admin-editor-page',
   components: {
     CAdminEditor, CAdminMethods
   },
@@ -39,7 +39,7 @@ export default defineComponent({
     }
 
     return {
-      viewModel: new ViewModel.typeLookup![this.type]
+      viewModel: new ViewModel.typeLookup![this.type],
     }
   },
 

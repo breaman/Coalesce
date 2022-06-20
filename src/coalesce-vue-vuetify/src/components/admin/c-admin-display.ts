@@ -3,6 +3,7 @@ import { ForSpec, getValueMeta } from "../c-metadata-component";
 import { propDisplay, Model, ClassType, ViewModelCollection } from "coalesce-vue";
 
 import CDisplay from '../display/c-display'
+import { useRouter } from "vue-router";
 
 export default defineComponent({
   name: "c-admin-display",
@@ -11,6 +12,8 @@ export default defineComponent({
     for: { required: false, type: [String, Object] as PropType<ForSpec> },
     model: { required: false, type: Object as PropType<Model<ClassType>> },
   },
+
+  setup() { return { router: useRouter() }},
 
 	render() {
     const props = this.$props;
@@ -49,11 +52,11 @@ export default defineComponent({
               // If we just gave a named raw location, it would always use the coalesce admin route
               // instead of the user-overridden one (that the user overrides by declaring another
               // route with the same path).
-              to: this.$router.resolve({ 
+              to: this.router.resolve({ 
                 name: 'coalesce-admin-list', 
                 params: { type: meta.itemType.typeDef.name },
                 query: { ['filter.' + meta.foreignKey.name]: pkValue }
-              }).resolved.fullPath
+              }).fullPath
             } 
           },
           // Use `propDisplay` for our formatted count, forcing the count always by preventing enumeration.
@@ -77,13 +80,13 @@ export default defineComponent({
                 // If we just gave a named raw location, it would always use the coalesce admin route
                 // instead of the user-overridden one (that the user overrides by declaring another
                 // route with the same path).
-                to: this.$router.resolve({ 
+                to: this.router.resolve({ 
                   name: 'coalesce-admin-item', 
                   params: { 
                     type: meta.typeDef.name,
                     id: (model as any)[meta.foreignKey.name]
                   },
-                }).resolved.fullPath
+                }).fullPath
               } 
             },
             propDisplay(model, meta) ?? fkValue

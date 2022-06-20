@@ -43,7 +43,7 @@
           @click.native="save()"
           :loading="this.viewModel.$save.isLoading"
           >
-          <v-icon left>fa fa-save</v-icon>
+          <v-icon start>fa:far fa-save</v-icon>
           Save
         </v-btn>
       </v-card-actions>

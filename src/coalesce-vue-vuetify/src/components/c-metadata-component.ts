@@ -16,7 +16,7 @@ import {
   AnyArgCaller
 } from 'coalesce-vue';
 import { Base } from 'vue-facing-decorator';
-import { computed, PropType, toRefs, useAttrs } from 'vue';
+import { computed, PropType, toRefs, useAttrs, defineProps, ExtractPropTypes } from 'vue';
 import { useMetadata } from '..';
 
 export type ForSpec = undefined | null | string | Property | Value | Method;
@@ -209,13 +209,15 @@ export function buildVuetifyAttrs(
   }
 }
 
-export function useMetadataProps() {
-  const metadata = useMetadata();
-
-  const props = defineProps({
+export function makeMetadataProps() {
+  return {
     for: { required: false, type: [String, Object] as PropType<ForSpec>, default: null },
     model: { type: Object as PropType<Model<ClassType>>, default: null },
-  })
+  }
+}
+
+export function useMetadataProps(props: ExtractPropTypes<ReturnType<typeof makeMetadataProps>>) {
+  const metadata = useMetadata();
 
   const modelMeta = computed(() => {
     return props.model ? props.model.$metadata : null;
@@ -233,5 +235,5 @@ export function useMetadataProps() {
     buildVuetifyAttrs(valueMeta.value, props.model, useAttrs())
   )
 
-  return { ...toRefs(props), modelMeta, valueMeta, inputBindAttrs }
+  return { modelMeta, valueMeta, inputBindAttrs }
 }

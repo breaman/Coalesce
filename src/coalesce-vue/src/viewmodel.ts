@@ -872,7 +872,7 @@ export abstract class ListViewModel<
 
   /** Stops auto-loading if it is currently enabled. */
   public $stopAutoLoad() {
-    this._autoLoadState?.cleanup!();
+    this._autoLoadState.cleanup?.();
   }
 
   constructor(

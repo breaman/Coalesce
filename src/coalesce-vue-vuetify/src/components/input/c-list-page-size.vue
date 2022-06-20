@@ -14,7 +14,7 @@
       <!-- Vuetify is glitchy when removing/adding a label dynamically,
       so we render two different components - one with the label (small screens), and one without (large screens). -->
       <v-select
-        v-if="$vuetify.breakpoint.smAndUp"
+        v-if="$vuetify.display.smAndUp"
         key="no-label"
         v-bind="selectBinds"
         v-model="list.$params.pageSize"
@@ -44,9 +44,9 @@ export default defineComponent({
   computed: {
     selectBinds(): any {
       return {
-        outlined: true,
-        'hide-details': true,
-        dense: true, 
+        variant: 'outlined',
+        'hide-details': true, 
+        density: "compact",
         items: this.items,
         class: 'c-list-page-size--dropdown',
       }

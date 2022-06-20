@@ -1,8 +1,8 @@
 <template>
   <v-autocomplete
     class="c-select-many-to-many"
-    :value="internalValue"
-    @input="onInput"
+    :modelValue="internalValue"
+    @update:modelValue="onInput"
     multiple
     chips
     small-chips
@@ -10,8 +10,8 @@
     :loading="isLoading"
     :error-messages="error"
     :items="listItems"
-    :search-input.sync="search"
-    :item-text="$attrs['item-text'] || itemText"
+    v-model:search="search"
+    :item-title="$attrs['item-title'] || itemText"
     :item-value="itemValue"
     :return-object="true"
     :disabled="!modelPkValue"
@@ -22,7 +22,7 @@
 </template>
 
 <script lang="ts">
-import { useMetadataProps } from "../c-metadata-component";
+import { makeMetadataProps, useMetadataProps } from "../c-metadata-component";
 import CDisplay from "../display/c-display";
 import {
   ListParameters,
@@ -50,9 +50,10 @@ export default defineComponent({
     CDisplay
   },
 
-  setup() { return { ...useMetadataProps() }},
+  setup(props) { return { ...useMetadataProps(props) }},
 
   props: {
+    ...makeMetadataProps(),
     value: <Prop<any>>{ required: false },
     params: { required: false, type: Object as PropType<ListParameters> },
   },
@@ -95,7 +96,26 @@ export default defineComponent({
 
     listItems() {
       // TODO: do this better to prevent duplicates?
-      return [...this.internalValue, ...this.items];
+      const added = new Set();
+      const ret = [];
+      
+      for (const item of this.internalValue) {
+        // Put the selected values first
+        added.add(this.itemValue(item));
+        ret.push(item);
+      }
+      
+      for (const item of this.items) {
+        // Add in all the non-selected values after the selected values,
+        // excluding any items previously listed.
+        // Vuetify2 would deduplicate for us; Vuetify3 does not.
+        const key = this.itemValue(item);
+        if (added.has(key)) continue;
+        added.add(key);
+        ret.push(item);
+      }
+
+      return ret;
     },
 
     listParams(): ListParameters {
@@ -106,13 +126,13 @@ export default defineComponent({
       return this.currentLoaders.some(l => l.isLoading);
     },
 
-    error(): string[] | null {
+    error(): string[] {
       for (const loader of this.currentLoaders) {
         if (!loader.wasSuccessful && loader.message) {
           return [loader.message]
         }
       }
-      return null;
+      return [];
     },
       
     canDelete(): boolean {
@@ -178,11 +198,6 @@ export default defineComponent({
     },
 
     itemText(item: any) {
-      if (Array.isArray(item)) {
-        // Workaround for https://github.com/vuetifyjs/vuetify/issues/8793
-        return null;
-      }
-
       const display = modelDisplay(this.foreignItemOf(item) || item);
       return display;
     },

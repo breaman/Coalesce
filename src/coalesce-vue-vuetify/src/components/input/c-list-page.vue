@@ -1,12 +1,12 @@
 <template>
   <div class="c-list-page">
     <v-btn 
-      outlined small icon
+      variant="outlined" size="x-small" icon
       @click="list.$previousPage()" 
       :disabled="!list.$hasPreviousPage"
       title="Previous Page"
     >
-      <v-icon>fa fa-angle-left</v-icon>
+      <v-icon>$prev</v-icon>
     </v-btn>
     
     Page 
@@ -16,19 +16,19 @@
       min="1"
       :max="list.$load.pageCount === -1 ? null : list.$load.pageCount"
       v-model.number="list.$page"
-      hide-details outlined dense
+      hide-details density="compact" variant="outlined"
       title="Current Page Number"
     ></v-text-field>
     <span class="text-no-wrap hidden-sm-and-up">{{list.$page}}</span>
     <span class="text-no-wrap ml-0" v-if="list.$load.pageCount !== -1">of {{list.$load.pageCount}}</span>
 
     <v-btn 
-      outlined small icon
+      variant="outlined" size="x-small" icon
       @click="list.$nextPage()" 
       :disabled="!list.$hasNextPage"
       title="Next Page"
     >
-      <v-icon>fa fa-angle-right</v-icon>
+      <v-icon>$next</v-icon>
     </v-btn>
   </div>
 </template>

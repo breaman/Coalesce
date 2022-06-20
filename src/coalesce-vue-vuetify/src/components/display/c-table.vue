@@ -1,7 +1,7 @@
 <template>
   <div class="c-table" :class="{ 'c-table--editable': editable }">
     <c-loader-status :loaders="{ 'no-initial-content': [list.$load] }" #default>
-      <v-simple-table>
+      <v-table>
         <thead>
           <tr>
             <th
@@ -15,12 +15,12 @@
             >
               {{ header.text }}
               <v-icon v-if="list.$params.orderBy == header.value">
-                fa fa-sort-up
+                fa:far fa-sort-up
               </v-icon>
               <v-icon
                 v-else-if="list.$params.orderByDescending == header.value"
               >
-                fa fa-sort-down
+                fa:far fa-sort-down
               </v-icon>
             </th>
           </tr>
@@ -52,7 +52,7 @@
             <slot name="item.append" :item="item" />
           </tr>
         </tbody>
-      </v-simple-table>
+      </v-table>
     </c-loader-status>
   </div>
 

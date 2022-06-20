@@ -32,7 +32,7 @@
           >
             <span v-if="filteredParams.length">Execute</span>
             <span v-else>
-              <v-icon left>fa fa-search</v-icon>
+              <v-icon start>fa:far fa-search</v-icon>
               Preview
             </span>
           </v-btn>
@@ -42,7 +42,7 @@
             @click="invokeAndDownload"
             :loading="caller.isLoading"
           >
-            <v-icon left>fa fa-download</v-icon>
+            <v-icon start>fa:far fa-download</v-icon>
             Download
           </v-btn>
         </template>
@@ -69,9 +69,9 @@
               color="primary" 
               @click="downloadFileResult"
               :loading="caller.isLoading"
-              x-small outlined
+              size=x-small outlined
             >
-              <v-icon left small>fa fa-download</v-icon>
+              <v-icon start small>fa:far fa-download</v-icon>
               Save to Disk
             </v-btn>
           </h3>
@@ -132,8 +132,8 @@
 
 
 <script lang="ts">
-import MetadataComponent, { getValueMeta, useMetadataProps } from '../c-metadata-component'
-import {  ViewModel,  ListViewModel, DisplayOptions, AnyArgCaller, ItemApiState } from 'coalesce-vue';
+import { getValueMeta, makeMetadataProps, useMetadataProps } from '../c-metadata-component'
+import { ViewModel, ListViewModel, DisplayOptions, AnyArgCaller, ItemApiState } from 'coalesce-vue';
 import CInput from '../input/c-input'
 import { defineComponent } from '@vue/runtime-core';
 
@@ -151,12 +151,11 @@ export default defineComponent({
   },
 
   props: {
+    ...makeMetadataProps(),
     autoReloadModel: {required: false, type: Boolean, default: false}
   },
 
-  setup() {
-    return { ...useMetadataProps() }
-  },
+  setup(props) { return { ...useMetadataProps(props) } },
 
   data() {
     return {
@@ -191,11 +190,9 @@ export default defineComponent({
       if (this.model instanceof ListViewModel) return this.model;
       throw Error("c-method: prop `model` is required, and must be a ViewModel or ListViewModel.");
     }
-
   },
 
   methods: {
-      
     async invoke() {
       this.fileDownloadKind = "preview";
       await this.caller.invokeWithArgs()
@@ -216,20 +213,20 @@ export default defineComponent({
       this.downloadFileResult();
     },
 
-      downloadFileResult() {
-        const caller = this.caller as ItemApiState<any, File>;
-        const file = caller.result;
-        if (!(file instanceof File)) return;
+    downloadFileResult() {
+      const caller = this.caller as ItemApiState<any, File>;
+      const file = caller.result;
+      if (!(file instanceof File)) return;
 
-        const a = document.createElement('a');
-        document.body.appendChild(a);
-        a.href = caller.getResultObjectUrl(this)!;
-        a.download = file.name;
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-        }, 1)
-      }
+      const a = document.createElement('a');
+      document.body.appendChild(a);
+      a.href = caller.getResultObjectUrl(this)!;
+      a.download = file.name;
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+      }, 1)
+    }
   }
 
 })

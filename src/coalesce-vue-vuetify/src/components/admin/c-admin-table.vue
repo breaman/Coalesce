@@ -32,7 +32,7 @@
                   v-if="canEdit || hasInstanceMethods"
                   class="mx-1"
                   title="Edit"
-                  text
+                  variant=text
                   icon
                   :to="editRoute(item)"
                 >
@@ -47,7 +47,7 @@
                   v-if="canDelete"
                   class="mx-1"
                   title="Delete"
-                  text
+                  variant=text
                   icon
                   @click="deleteItemWithConfirmation(item)"
                 >

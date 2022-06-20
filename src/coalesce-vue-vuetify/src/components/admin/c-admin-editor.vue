@@ -23,7 +23,7 @@
 
       <v-spacer></v-spacer>
       <v-btn @click="model.$load()" text :disabled="!hasPk">
-        <v-icon left>fa fa-sync-alt</v-icon>
+        <v-icon start>$loading</v-icon>
         <span class="hidden-sm-and-down">Reload</span>
       </v-btn>
     </v-toolbar>
@@ -76,7 +76,7 @@
                     }
                   }"
                 >
-                  <v-icon class="black--text">fa fa-ellipsis-h</v-icon>
+                  <v-icon class="black--text">fa:far fa-ellipsis-h</v-icon>
                 </v-btn>
               </v-col>
             </v-row>

@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts">
-import { useMetadataProps } from '../c-metadata-component'
+import { makeMetadataProps, useMetadataProps } from '../c-metadata-component'
 import { ListViewModel, ModelType } from 'coalesce-vue';
 
 import CAdminMethods from './c-admin-methods.vue';
@@ -32,13 +32,12 @@ export default defineComponent({
   },
 
   props: {
+    ...makeMetadataProps(),
     type: { required: false, type: String, default: null },
     list: { required: false, type: Object as PropType<ListViewModel> },
   },
 
-  setup() {
-    return { ...useMetadataProps() }
-  },
+  setup(props) { return { ...useMetadataProps(props) } },
 
   data() {
     let listVM;

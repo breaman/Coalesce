@@ -1,15 +1,15 @@
 
 
-import Vue, { defineComponent, Prop, h as _c, toHandlerKey, PropType} from "vue";
+import Vue, { defineComponent, Prop, h as _c, toHandlerKey, PropType, mergeProps} from "vue";
 import { buildVuetifyAttrs, ForSpec, getValueMeta } from "../c-metadata-component";
-import { Model, ClassType, DataSource, DataSourceType, mapValueToModel, AnyArgCaller, ApiState, parseValue } from "coalesce-vue";
+import { Model, ClassType, DataSource, DataSourceType, mapValueToModel, AnyArgCaller, ApiState, parseValue, EnumMember } from "coalesce-vue";
 
 import CSelect from './c-select.vue'
 import CSelectManyToMany from './c-select-many-to-many.vue'
 import CSelectValues from './c-select-values.vue'
 import CDisplay from '../display/c-display';
 import CDatetimePicker from './c-datetime-picker.vue';
-import { VCheckbox, VFileInput, VListItemSubtitle, VListItemTitle, VSelect, VSwitch, VTextarea, VTextField } from "vuetify/components";
+import { VCheckbox, VFileInput, VListItemHeader, VListItemSubtitle, VListItemTitle, VSelect, VSwitch, VTextarea, VTextField } from "vuetify/components";
 
 const primitiveTypes = ["string", "number", "date", "enum", "boolean"];
 
@@ -27,8 +27,6 @@ export default defineComponent({
   },
 
 	render() {
-    // NOTE: CreateElement fn must be named `_c` for unplugin-vue-components to work correctly.
-
     let model = this.model; 
     const modelMeta = model ? model.$metadata : null;
     
@@ -69,26 +67,26 @@ export default defineComponent({
       //   data.for = props.for;
       //   return _c(CDatetimePicker, data);
 
-      // case 'model':
-      //   data.model = props.model;
-      //   data.for = props.for;
-      //   return _c(CSelect, data);
+      case 'model':
+        data.model = props.model;
+        data.for = props.for;
+        return _c(CSelect, data);
 
-      // case 'collection':
-      //   data.model = props.model;
-      //   data.for = props.for;
+      case 'collection':
+        data.model = props.model;
+        data.for = props.for;
 
-      //   if ('manyToMany' in valueMeta) {
-      //     return _c(CSelectManyToMany, data);
-      //   } else if (
-      //     valueMeta.itemType.type != 'model' && 
-      //     valueMeta.itemType.type != 'object' && 
-      //     valueMeta.itemType.type != 'file'
-      //   ) {
-      //     return _c(CSelectValues, data);
-      //   } else {
-      //     // console.warn(`Unsupported collection type ${valueMeta.itemType.type} for v-input`)
-      //   }
+        if ('manyToMany' in valueMeta) {
+          return _c(CSelectManyToMany, data);
+        } else if (
+          valueMeta.itemType.type != 'model' && 
+          valueMeta.itemType.type != 'object' && 
+          valueMeta.itemType.type != 'file'
+        ) {
+          return _c(CSelectValues, data);
+        } else {
+          // console.warn(`Unsupported collection type ${valueMeta.itemType.type} for v-input`)
+        }
     }
 
 
@@ -146,16 +144,11 @@ export default defineComponent({
       case 'enum':
         addHandler(data, "update:modelValue", onInput);
         data.items = valueMeta.typeDef.values
-        data['item-text'] = 'displayName';
+        data['item-title'] = 'displayName';
         data['item-value'] = 'value';
-        var slots: any = {};
-        if (valueMeta.typeDef.values.some(v => v.description)) {
-          slots.item = ({item}: any) => [
-            _c(VListItemTitle, [item.displayName]),
-            item.description ? _c(VListItemSubtitle, [item.description]) : null /*_c()*/,
-          ];
-        }
-        return _c(VSelect, data, slots);
+        // maps to the prop "subtitle" on v-list-item
+        data['item-props'] = (item: any) => ({subtitle: item.description});
+        return _c(VSelect, data);
 
       case 'file': 
         // v-file-input uses 'change' as its event, not 'input'.
@@ -205,6 +198,7 @@ export default defineComponent({
 
 function addHandler(data: any, eventName: string, handler: Function) {
   eventName = toHandlerKey(eventName);
+  // consider using mergeProps (import from vue) here?
   const oldValue = data[eventName];
   if (oldValue == null) {
     data[eventName] = handler;

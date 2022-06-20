@@ -1,40 +1,38 @@
 
 <template>
-  <v-expand-transition>
-    <v-expansion-panels v-if="methods.length" class="c-methods">
-      <v-toolbar
-        class="c-admin-editor-page--toolbar"
-        dense color="primary darken-1" dark
-      >
+  <v-toolbar
+    class="c-admin-editor-page--toolbar"
+    dense color="primary darken-1" dark
+  >
 
-        <v-toolbar-title >
-          Actions
-        </v-toolbar-title>
+    <v-toolbar-title >
+      Actions
+    </v-toolbar-title>
 
-        <v-divider class="mx-4 my-0" vertical></v-divider>
+    <v-divider class="mx-4 my-0" vertical></v-divider>
 
-        <v-toolbar-title v-if="!isStatic">
-          <c-display :model="model"></c-display>
-        </v-toolbar-title>
-      </v-toolbar>
-      <v-expansion-panel
-        v-for="method in methods"
-        :key="method.name"
-      >
-        <v-expansion-panel-header>
-          <div>{{method.displayName}}</div>
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <c-admin-method
-            :model="model"
-            :for="method"
-            :autoReloadModel="autoReloadModel"
-          >
-          </c-admin-method>
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-    </v-expansion-panels>
-  </v-expand-transition>
+    <v-toolbar-title v-if="!isStatic">
+      <c-display :model="model"></c-display>
+    </v-toolbar-title>
+  </v-toolbar>
+  <v-expansion-panels v-if="methods.length" class="c-methods">
+    <v-expansion-panel
+      v-for="method in methods"
+      :key="method.name"
+    >
+      <v-expansion-panel-title>
+        <div>{{method.displayName}}</div>
+      </v-expansion-panel-title>
+      <v-expansion-panel-text>
+        <c-admin-method
+          :model="model"
+          :for="method"
+          :autoReloadModel="autoReloadModel"
+        >
+        </c-admin-method>
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+  </v-expansion-panels>
 </template>
 
 

@@ -12,7 +12,7 @@
       text
       :to="createRoute"
     >
-      <v-icon :left="$vuetify.breakpoint.mdAndUp">fa fa-plus</v-icon>
+      <v-icon :start="$vuetify.display.mdAndUp">$plus</v-icon>
       <span class="hidden-sm-and-down">Create</span>
     </v-btn>
 
@@ -21,7 +21,7 @@
       text
       @click="list.$load()"
     >
-      <v-icon left>fa fa-sync-alt</v-icon>
+      <v-icon start>$loading</v-icon>
       <span class="hidden-sm-and-down">Reload</span>
     </v-btn>
 
@@ -33,11 +33,11 @@
       :title="editable ? 'Make Read-only' : 'Make Editable'"
     >
       <template v-if="!editable">
-        <v-icon left>fa fa-edit</v-icon>
+        <v-icon start>$edit</v-icon>
         <span class="hidden-sm-and-down">Edit</span>
       </template>
       <template v-else>
-        <v-icon left>fa fa-lock</v-icon>
+        <v-icon start>fa:far fa-lock</v-icon>
         <span class="hidden-sm-and-down">Lock</span>
       </template>
     </v-btn>
@@ -79,7 +79,7 @@
 <script lang="ts">
 import { PropType, defineComponent } from "vue";
 import { useRouter } from "vue-router";
-import { useMetadataProps } from "../c-metadata-component";
+import { makeMetadataProps, useMetadataProps } from "../c-metadata-component";
 import {
   ListViewModel,
   ModelType,
@@ -96,14 +96,15 @@ export default defineComponent({
   name: "c-admin-table-toolbar",
   components: { CListRangeDisplay, CListPage, CListPageSize, CListFilters },
 
-  setup() {
+  setup(props) {
     return {
-      ...useMetadataProps(),
+      ...useMetadataProps(props),
       router: useRouter()
     }
   },
 
   props: {
+    ...makeMetadataProps(),
     list: { required: true, type: Object as PropType<ListViewModel> },
     color: { default: "primary", type: String },
     editable: { default: null, required: false, type: Boolean },

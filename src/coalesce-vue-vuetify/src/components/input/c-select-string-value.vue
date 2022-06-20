@@ -1,12 +1,12 @@
 <template>
   <v-combobox
     class="c-select-string-value"
-    :value="internalValue"
-    @input="onInput"
+    :modelValue="internalValue"
+    @update:modelValue="onInput"
 
     :loading="loading"
     :items="items"
-    :search-input.sync="search"
+    v-model:search="search"
     v-bind="inputBindAttrs"
   >
   </v-combobox>
@@ -18,16 +18,17 @@
 
 import { defineComponent } from 'vue';
 import { ItemApiState, ModelApiClient, ItemResultPromise } from 'coalesce-vue';
-import { useMetadataProps } from '../c-metadata-component';
+import { makeMetadataProps, useMetadataProps } from '../c-metadata-component';
 
 const MODEL_REQUIRED_MESSAGE = "c-select-string-value requires a model to be provided via the `model` prop."
     
 export default defineComponent({
   name: 'c-select-string-value',
 
-  setup() { return { ...useMetadataProps() }},
+  setup(props) { return { ...useMetadataProps(props) }},
 
   props: {
+    ...makeMetadataProps(),
     method: { required: true, type: String },
     params: { required: false, type: Object },
     listWhenEmpty: { required: false, default: false, type: Boolean },

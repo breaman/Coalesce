@@ -15,10 +15,12 @@ export { default as CDisplay } from './display/c-display'
 export { default as CInput } from './input/c-input';
 export { default as CLoaderStatus } from './display/c-loader-status.vue';
 export { default as CListPage } from './input/c-list-page.vue';
+export { default as CListFilters } from './input/c-list-filters.vue';
 export { default as CListPageSize } from './input/c-list-page-size.vue';
 export { default as CListRangeDisplay } from './display/c-list-range-display.vue';
 export { default as CListPagination } from './input/c-list-pagination.vue';
 export { default as CSelectManyToMany } from './input/c-select-many-to-many.vue';
 export { default as CSelectStringValue } from './input/c-select-string-value.vue';
+export { default as CSelectValues } from './input/c-select-values.vue';
 export { default as CSelect } from './input/c-select.vue';
 export { default as CTable } from './display/c-table.vue';

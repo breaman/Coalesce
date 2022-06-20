@@ -18,7 +18,7 @@
         :disabled="disabled"
         autocomplete="off"
         :append-icon="
-          internalDateKind == 'time' ? 'fa fa-clock' : 'fa fa-calendar-alt'
+          internalDateKind == 'time' ? 'fa:far fa-clock' : 'fa:far fa-calendar-alt'
         "
         @change="textInputChanged"
         @click:append="menu = !menu"
@@ -34,10 +34,10 @@
         v-show="showDate && showTime"
       >
         <v-tab key="date" v-if="showDate">
-          <v-icon left>fa fa-calendar-alt</v-icon> Date
+          <v-icon start>fa:far fa-calendar-alt</v-icon> Date
         </v-tab>
         <v-tab key="time" v-if="showTime">
-          <v-icon left>fa fa-clock</v-icon> Time
+          <v-icon start>fa:far fa-clock</v-icon> Time
         </v-tab>
       </v-tabs>
 
@@ -88,15 +88,16 @@ import {
 
 import { parseDateUserInput } from "coalesce-vue";
 import { defineComponent } from "@vue/runtime-core";
-import { useMetadataProps } from "../c-metadata-component";
+import { makeMetadataProps, useMetadataProps } from "../c-metadata-component";
 
 export default defineComponent({
   name: "c-datetime-picker",
   components: {},
 
-  setup() { return { ...useMetadataProps() }},
+  setup(props) { return { ...useMetadataProps(props) }},
 
   props: {
+    ...makeMetadataProps(),
     value: { required: false, type: Date },
     dateKind: { type: String },
     dateFormat: { type: String },

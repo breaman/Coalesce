@@ -50,71 +50,71 @@ export function createAspNetCoreHmrPlugin({
 
   const plugins = <Plugin[]>[
     {
-    name: "coalesce-vite-hmr",
-    async config(config, env) {
-        const server = (config.server ??= {});
+      name: "coalesce-vite-hmr",
+      async config(config, env) {
+          const server = (config.server ??= {});
 
-      config.base = base;
-      
-      // The development server launched by UseViteDevelopmentServer must be HTTPS
-        // if the aspnetcore server is HTTPs to avoid issues with mixed content:
-      if (https && server.https != false) {
-        const httpsOptions = (server.https ??= {}) as https.ServerOptions;
-          
-        const { keyFilePath, certFilePath } = await getCertPaths();
+        config.base = base;
+        
+        // The development server launched by UseViteDevelopmentServer must be HTTPS
+          // if the aspnetcore server is HTTPs to avoid issues with mixed content:
+        if (https && server.https != false) {
+          const httpsOptions = (server.https ??= {}) as https.ServerOptions;
+            
+          const { keyFilePath, certFilePath } = await getCertPaths();
 
-        httpsOptions.key ??= readFileSync(keyFilePath);
-        httpsOptions.cert ??= readFileSync(certFilePath);
-      }
-    },
-
-    async configureServer(server) {
-      // We are passed in the parent .NET process's PID so that when it aborts,
-      // we can shut ourselves down. Otherwise the vite server will end up orphaned.
-      // Technique adopted from https://github.com/dotnet/aspnetcore/blob/v3.0.0/src/Middleware/NodeServices/src/Content/Node/entrypoint-http.js#L369-L395
-
-      setInterval(async function () {
-        let parentExists = true;
-        try {
-          // Sending signal 0 - on all platforms - tests whether the process exists. As long as it doesn't
-          // throw, that means it does exist.
-          process.kill(+parentPid, 0);
-          parentExists = true;
-        } catch (ex) {
-          // If the reason for the error is that we don't have permission to ask about this process,
-          // report that as a separate problem.
-          if ((ex as any).code === "EPERM") {
-            throw new Error(
-              `Attempted to check whether process ${parentPid} was running, but got a permissions error.`
-            );
-          }
-          parentExists = false;
+          httpsOptions.key ??= readFileSync(keyFilePath);
+          httpsOptions.cert ??= readFileSync(certFilePath);
         }
+      },
 
-        if (!parentExists) {
+      async configureServer(server) {
+        // We are passed in the parent .NET process's PID so that when it aborts,
+        // we can shut ourselves down. Otherwise the vite server will end up orphaned.
+        // Technique adopted from https://github.com/dotnet/aspnetcore/blob/v3.0.0/src/Middleware/NodeServices/src/Content/Node/entrypoint-http.js#L369-L395
+
+        setInterval(async function () {
+          let parentExists = true;
           try {
-            await server.close();
-          } finally {
-            process.exit(0);
+            // Sending signal 0 - on all platforms - tests whether the process exists. As long as it doesn't
+            // throw, that means it does exist.
+            process.kill(+parentPid, 0);
+            parentExists = true;
+          } catch (ex) {
+            // If the reason for the error is that we don't have permission to ask about this process,
+            // report that as a separate problem.
+            if ((ex as any).code === "EPERM") {
+              throw new Error(
+                `Attempted to check whether process ${parentPid} was running, but got a permissions error.`
+              );
+            }
+            parentExists = false;
           }
-        }
-      }, 1000);
 
-      // Write the index.html file once on startup so it can be picked up immediately by aspnetcore.
-        if (writeIndexHtmlToDisk) {
-      writeHtml(server);
-        }
-    },
+          if (!parentExists) {
+            try {
+              await server.close();
+            } finally {
+              process.exit(0);
+            }
+          }
+        }, 1000);
 
-    async handleHotUpdate(ctx) {
-        if (
-          writeIndexHtmlToDisk &&
-          ctx.server.config.root + "/index.html" == ctx.file
-        ) {
-        // Rewrite the index.html file whenever it changes.
-        writeHtml(ctx.server);
-      }
-    },
+        // Write the index.html file once on startup so it can be picked up immediately by aspnetcore.
+          if (writeIndexHtmlToDisk) {
+        writeHtml(server);
+          }
+      },
+
+      async handleHotUpdate(ctx) {
+          if (
+            writeIndexHtmlToDisk &&
+            ctx.server.config.root + "/index.html" == ctx.file
+          ) {
+          // Rewrite the index.html file whenever it changes.
+          writeHtml(ctx.server);
+        }
+      },
     },
   ];
 
@@ -170,7 +170,7 @@ export function createAspNetCoreHmrPlugin({
         server.transformIndexHtml = async function (...args) {
           const res = await original.apply(this, args);
           return transformCode(res)?.toString() ?? res;
-  };
+        };
 
         // Transform assets (fonts, mainly) to go to the HMR server instead of the aspnetcore server.
         server.httpServer!.on("listening", () => {
@@ -209,7 +209,7 @@ export function createAspNetCoreHmrPlugin({
     //       : undefined;
     //   },
     // });
-}
+  }
 
   return plugins;
 }

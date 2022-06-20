@@ -1,12 +1,25 @@
 <template>
   <v-container grid-list-lg>
+
     
+
+    <c-admin-table :list="personList"></c-admin-table>
+    
+<!--     
     <video v-if="caseVm.caseKey" :src="caseVm.downloadImage.url" controls style="max-width: 100%">
     </video>
-    <img v-if="caseVm.caseKey" :src="caseVm.downloadImage.url" controls style="max-width: 100%" />
+    <img v-if="caseVm.caseKey" :src="caseVm.downloadImage.url" controls style="max-width: 100%" /> -->
  
 
     <c-input :model="caseVm" for="title"></c-input>
+    <c-input :model="caseVm" for="description" textarea></c-input>
+    <c-input :model="caseVm" for="openedAt"></c-input>
+    <c-input :model="caseVm" for="assignedTo"></c-input>
+    <c-input :model="caseVm" for="reportedBy"></c-input>
+    <c-input :model="caseVm" for="attachmentSize"></c-input>
+    <c-input :model="caseVm" for="severity"></c-input>
+    <c-input :model="caseVm" for="status"></c-input>
+    <c-input :model="caseVm" for="caseProducts"></c-input>
     <c-display :model="caseVm" for="title"/>
 
     <v-text-field v-model="caseVm.title" label="vuetify direct"></v-text-field>
@@ -14,8 +27,8 @@
     </video>--> 
 
     <!-- <c-input :model="person" for="height" /> -->
-
     
+
   </v-container>
 
 
